@@ -1,0 +1,16 @@
+[project]
+name = "bmetrics_SiliconScientist"
+version = "0.0.1"
+authors = [{ name = "Avery Hill", email = "ahill15@tulane.edu" }]
+description = "A package for evaluating ML adsorption models"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/SiliconScientist/BindingModelMetrics"
+Issues = "https://github.com/SiliconScientist/BindingModelMetrics/issues"
