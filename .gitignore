@@ -167,3 +167,6 @@ models/
 
 # Configuration file
 config.toml
+
+# Debugger functionality
+.vscode/

@@ -1,5 +1,6 @@
 toml
 ase
+fairchem-core
 torch
 torch_geometric
 torch_scatter
