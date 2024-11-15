@@ -1,0 +1,11 @@
+pydantic
+toml
+tqdm
+scikit-learn
+fairchem-core
+torch
+torch_geometric
+torch_scatter
+torch_sparse
+torch_cluster
+-f https://download.pytorch.org/whl/cu118

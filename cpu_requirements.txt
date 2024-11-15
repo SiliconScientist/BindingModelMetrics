@@ -1,5 +1,7 @@
+pydantic
 toml
-ase
+tqdm
+scikit-learn
 fairchem-core
 torch
 torch_geometric

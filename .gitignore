@@ -170,3 +170,7 @@ config.toml
 
 # Debugger functionality
 .vscode/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb
