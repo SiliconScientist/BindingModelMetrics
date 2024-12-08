@@ -174,3 +174,5 @@ config.toml
 # Jupyter Notebook
 .ipynb_checkpoints/
 *.ipynb
+
+data_processed.pt

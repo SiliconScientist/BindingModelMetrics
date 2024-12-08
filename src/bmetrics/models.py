@@ -7,6 +7,9 @@ from torch_geometric.data import Data
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import global_mean_pool
+from bmetrics.pretrained_models import get_expert_output
+
+
 
 
 class GatingGCN(torch.nn.Module):
@@ -45,18 +48,18 @@ class MyDataset(InMemoryDataset):
 
     def process(self):
         self.data = LmdbDataset({"src": self.raw_dir})
-        data_list = []
-        for data in self.data:
-            x = data.atomic_numbers
-            pos = data.pos_relaxed
-            edge_index = data.edge_index
-            y = data.y_relaxed
+        # data_list = []
+        # for data in self.data:
+        #     x = data.atomic_numbers
+        #     pos = data.pos_relaxed
+        #     edge_index = data.edge_index
+        #     y = data.y_relaxed
 
-            # Create a PyTorch Geometric Data object
-            data = Data(x=x, pos=pos, edge_index=edge_index, y=y)
-            data_list.append(data)
-        data, slices = self.collate(data_list)
-        torch.save((data, slices), self.processed_paths[0])
+        #     # Create a PyTorch Geometric Data object
+        #     data = Data(x=x, pos=pos, edge_index=edge_index, y=y)
+        #     data_list.append(data)
+        # data, slices = self.collate(data_list)
+        # torch.save((data, slices), self.processed_paths[0])
 
     
     def __getitem__(self, idx: int):
@@ -72,20 +75,9 @@ class MixtureOfExperts(nn.Module):
         self.gating_network = gating_network
 
     def forward(self, data):
-        expert_outputs = [expert(z=data.x.long(), pos=data.pos, batch=data.batch) for expert in self.experts]
+        expert_outputs = [get_expert_output(expert, data) for expert in self.experts]
         expert_outputs = torch.stack(expert_outputs, dim=2) # shape: (batch_size, num_experts, output_dim)
-        x = torch.cat([data.x.unsqueeze(1), data.pos], dim=-1)
-        # Get gating weights
+        x = torch.cat([data.atomic_numbers.unsqueeze(1), data.pos], dim=-1)
         weights = self.gating_network(x, data.edge_index, data.batch)
         weights = weights.unsqueeze(1).expand_as(expert_outputs)
         return torch.sum(expert_outputs * weights, dim=2)
-
-
-# Create experts (you can replace these with your pre-trained models)
-class SimpleExpert(nn.Module):
-    def __init__(self, input_dim, output_dim):
-        super(SimpleExpert, self).__init__()
-        self.fc = nn.Linear(input_dim, output_dim)
-
-    def forward(self, x):
-        return self.fc(x)
