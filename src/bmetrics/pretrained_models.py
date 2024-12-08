@@ -3,7 +3,7 @@ from torch_geometric.nn.models.dimenet import DimeNetPlusPlus
 from torch_geometric.nn.models.schnet import SchNet
 
 def set_up_model(model_class, model_arguments: dict, weights_path: str, device: str, freeze_parameters=False,) -> torch.nn.Module:
-    model = model_class(**model_arguments)
+    model = model_class(**model_arguments).to(device)
     weights = torch.load(weights_path, map_location=torch.device(device), weights_only=True)
     model.load_state_dict(weights["state_dict"], strict=False)
     if freeze_parameters:

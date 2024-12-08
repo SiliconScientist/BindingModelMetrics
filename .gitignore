@@ -174,3 +174,7 @@ config.toml
 # Jupyter Notebook
 .ipynb_checkpoints/
 *.ipynb
+
+# SLURM files
+*.sh
+*slurm_output

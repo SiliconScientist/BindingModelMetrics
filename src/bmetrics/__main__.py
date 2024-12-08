@@ -24,12 +24,13 @@ def main():
     trained_experts = load_experts(config.model_names, weights_root=config.weights_root, device=config.device)
     num_experts = len(trained_experts)
     gating_network = GatingGCN(input_dim=config.input_dim, num_experts=num_experts, hidden_channels=config.hidden_channels).to(config.device)
-    moe_model = MixtureOfExperts(trained_experts, gating_network).to(config.device)
+    moe_model = MixtureOfExperts(trained_experts, gating_network, device=config.device)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(moe_model.parameters(), lr=config.learning_rate)
     for epoch in range(config.num_epochs):
         for data in train_dataloader:
             # Forward pass
+            data = data.to(config.device)
             outputs = moe_model(data)
             loss = criterion(outputs, data.y.unsqueeze(-1))
             # Backward pass and optimization
@@ -40,9 +41,10 @@ def main():
     moe_model.eval()
     total_loss = 0.0
     with torch.no_grad():
-        for batch in test_dataloader:
-            predictions = moe_model(batch=batch.graphs)  # Forward pass
-            loss = torch.nn.functional.mse_loss(predictions, batch.y)
+        for data in test_dataloader:
+            data = data.to(config.device)
+            outputs = moe_model(data)  # Forward pass
+            loss = criterion(outputs, data.y.unsqueeze(-1))
             total_loss += loss.item()
     average_loss = total_loss / len(test_dataloader)
     print(f"Test Loss: {average_loss}")

@@ -66,10 +66,11 @@ class MyDataset(InMemoryDataset):
 
 # Mixture of Experts Model
 class MixtureOfExperts(nn.Module):
-    def __init__(self, trained_experts, gating_network):
+    def __init__(self, trained_experts, gating_network, device):
         super(MixtureOfExperts, self).__init__()
         self.experts = nn.ModuleList(trained_experts)
         self.gating_network = gating_network
+        self.device = device
 
     def forward(self, data):
         expert_outputs = [expert(z=data.x.long(), pos=data.pos, batch=data.batch) for expert in self.experts]
