@@ -11,9 +11,9 @@ def set_up_model(model_class, model_arguments: dict, weights_path: str, device: 
             param.requires_grad = False
     return model
 
-def load_experts(models_names: list, weights_root: str, device: str) -> list:
+def load_experts(model_names: list, weights_root: str, device: str) -> list:
     experts = []
-    if "dimenetpp" in models_names:
+    if "dimenetpp" in model_names:
         model_arguments = {
         'hidden_channels': 192,
         'out_emb_channels': 192,
@@ -32,7 +32,7 @@ def load_experts(models_names: list, weights_root: str, device: str) -> list:
         model = set_up_model(model_class=DimeNetPlusPlus, model_arguments=model_arguments, weights_path=weights_path, device=device)
         experts.append(model)
 
-    if "schnet" in models_names:
+    if "schnet" in model_names:
         model_arguments = {
         'hidden_channels': 1024,
         'num_filters': 256,
