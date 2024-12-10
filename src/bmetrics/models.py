@@ -10,8 +10,6 @@ from torch_geometric.nn import global_mean_pool
 from bmetrics.pretrained_models import get_expert_output
 
 
-
-
 class GatingGCN(torch.nn.Module):
     def __init__(self, input_dim: int, num_experts: int, hidden_channels: int):
         super().__init__()
@@ -30,44 +28,6 @@ class GatingGCN(torch.nn.Module):
         return F.log_softmax(x, dim=1)
 
 
-class MyDataset(InMemoryDataset):
-    def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
-        super(MyDataset, self).__init__(root, transform, pre_transform, pre_filter)
-        self.data, self.slices = torch.load(self.processed_paths[0])
-
-    @property
-    def raw_paths(self):
-        return ['data.lmdb']
-    
-    @property
-    def processed_paths(self):
-        return ['data_processed.pt']
-    
-    def download(self):
-        pass
-
-    def process(self):
-        self.data = LmdbDataset({"src": self.raw_dir})
-        # data_list = []
-        # for data in self.data:
-        #     x = data.atomic_numbers
-        #     pos = data.pos_relaxed
-        #     edge_index = data.edge_index
-        #     y = data.y_relaxed
-
-        #     # Create a PyTorch Geometric Data object
-        #     data = Data(x=x, pos=pos, edge_index=edge_index, y=y)
-        #     data_list.append(data)
-        # data, slices = self.collate(data_list)
-        # torch.save((data, slices), self.processed_paths[0])
-
-    
-    def __getitem__(self, idx: int):
-        data = self.get(idx)  # PyG Data object
-        return data
-
-
-# Mixture of Experts Model
 class MixtureOfExperts(nn.Module):
     def __init__(self, trained_experts, gating_network):
         super(MixtureOfExperts, self).__init__()
