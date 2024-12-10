@@ -27,7 +27,7 @@ def main():
             # Forward pass
             data = data.to(config.device)
             pred = get_expert_output(model, data)
-            loss = criterion(pred, data.y.unsqueeze(-1))
+            loss = criterion(pred, data.y_relaxed.unsqueeze(-1))
             # Backward pass and optimization
             optimizer.zero_grad()
             loss.backward()
