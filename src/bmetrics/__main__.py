@@ -26,7 +26,7 @@ def main():
         for data in train_dataloader:
             # Forward pass
             data = data.to(config.device)
-            pred = model(data)
+            pred = get_expert_output(model, data)
             loss = criterion(pred, data.y.unsqueeze(-1))
             # Backward pass and optimization
             optimizer.zero_grad()
