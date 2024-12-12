@@ -19,9 +19,6 @@ def load_experts(model_names: list, weights_root: str, device: str) -> list:
         model_arguments = {
         'hidden_channels': 192,
         'out_emb_channels': 192,
-        'int_emb_size': 64,
-        'out_channels': 1,
-        'basis_emb_size': 8,
         'num_blocks': 3,
         'cutoff': 6.0,
         'num_radial': 6,
@@ -31,6 +28,7 @@ def load_experts(model_names: list, weights_root: str, device: str) -> list:
         'num_output_layers': 3,
         'regress_forces': True,
         'use_pbc': True,
+        'otf_graph': True,
         }
         weights_path = f"{weights_root}/dimenetpp_all.pt"
         model = set_up_model(model_class=DimeNetPlusPlusWrap, model_arguments=model_arguments, weights_path=weights_path, device=device)
@@ -44,6 +42,7 @@ def load_experts(model_names: list, weights_root: str, device: str) -> list:
         'num_gaussians': 200,
         'cutoff': 6.0,
         'use_pbc': True,
+        'otf_graph': True,
         }
         weights_path = f"{weights_root}/schnet_all_large.pt"
         model = set_up_model(model_class=SchNetWrap, model_arguments=model_arguments, weights_path=weights_path, device=device)

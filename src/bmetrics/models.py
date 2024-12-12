@@ -1,13 +1,8 @@
 import torch
 import torch.nn as nn
-from torch_geometric.data import InMemoryDataset
-from torch.utils.data import Dataset, Subset
-from fairchem.core.datasets import LmdbDataset
-from torch_geometric.data import Data
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import global_mean_pool
-from bmetrics.pretrained_models import get_expert_output
 
 
 class GatingGCN(torch.nn.Module):
@@ -36,7 +31,7 @@ class MixtureOfExperts(nn.Module):
         self.device = device
 
     def forward(self, data):
-        expert_output = [expert(data) for expert in self.experts]
+        expert_output = [expert(data)['energy'] for expert in self.experts]
         expert_output = torch.stack(expert_output, dim=2) # shape: (batch_size, num_experts, output_dim)
         x = torch.cat([data.atomic_numbers.unsqueeze(1), data.pos], dim=-1)
         weights = self.gating_network(x, data.edge_index, data.batch)
