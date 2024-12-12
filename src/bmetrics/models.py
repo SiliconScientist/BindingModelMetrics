@@ -36,9 +36,9 @@ class MixtureOfExperts(nn.Module):
         self.device = device
 
     def forward(self, data):
-        expert_outputs = [get_expert_output(expert, data) for expert in self.experts]
-        expert_outputs = torch.stack(expert_outputs, dim=2) # shape: (batch_size, num_experts, output_dim)
+        expert_output = [expert(data) for expert in self.experts]
+        expert_output = torch.stack(expert_output, dim=2) # shape: (batch_size, num_experts, output_dim)
         x = torch.cat([data.atomic_numbers.unsqueeze(1), data.pos], dim=-1)
         weights = self.gating_network(x, data.edge_index, data.batch)
-        weights = weights.unsqueeze(1).expand_as(expert_outputs)
-        return torch.sum(expert_outputs * weights, dim=2)
+        weights = weights.unsqueeze(1).expand_as(expert_output)
+        return torch.sum(expert_output * weights, dim=2)

@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch_geometric.loader import DataLoader
-from bmetrics.pretrained_models import load_experts, get_expert_output
+from bmetrics.pretrained_models import load_experts
 from bmetrics.models import GatingGCN, MixtureOfExperts
 from bmetrics.config import Config
 from sklearn.model_selection import train_test_split
@@ -26,8 +26,8 @@ def main():
         for data in train_dataloader:
             # Forward pass
             data = data.to(config.device)
-            pred = get_expert_output(model, data)
-            loss = criterion(pred, data.y_relaxed.unsqueeze(-1))
+            pred = model(data)
+            loss = criterion(pred, data.energy.unsqueeze(-1))
             # Backward pass and optimization
             optimizer.zero_grad()
             loss.backward()
@@ -38,8 +38,8 @@ def main():
     with torch.no_grad():
         for data in test_dataloader:
             data = data.to(config.device)
-            pred = get_expert_output(model, data)
-            loss = criterion(pred, data.y_relaxed.unsqueeze(-1))
+            pred = model(data)
+            loss = criterion(pred, data.energy.unsqueeze(-1))
             total_loss += loss.item()
     average_loss = total_loss / len(test_dataloader)
     print(f"Test Loss: {average_loss}")

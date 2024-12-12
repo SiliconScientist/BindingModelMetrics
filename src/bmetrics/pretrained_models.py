@@ -1,6 +1,6 @@
 import torch
-from torch_geometric.nn.models.dimenet import DimeNetPlusPlus
-from torch_geometric.nn.models.schnet import SchNet
+from fairchem.core.models.dimenet_plus_plus import DimeNetPlusPlusWrap
+from fairchem.core.models.schnet import SchNetWrap
 from fairchem.core.models.painn import PaiNN
 
 
@@ -29,9 +29,11 @@ def load_experts(model_names: list, weights_root: str, device: str) -> list:
         'num_before_skip': 1,
         'num_after_skip': 2,
         'num_output_layers': 3,
+        'regress_forces': True,
+        'use_pbc': True,
         }
         weights_path = f"{weights_root}/dimenetpp_all.pt"
-        model = set_up_model(model_class=DimeNetPlusPlus, model_arguments=model_arguments, weights_path=weights_path, device=device)
+        model = set_up_model(model_class=DimeNetPlusPlusWrap, model_arguments=model_arguments, weights_path=weights_path, device=device)
         experts.append(model)
 
     if "schnet" in model_names:
@@ -41,9 +43,10 @@ def load_experts(model_names: list, weights_root: str, device: str) -> list:
         'num_interactions': 5,
         'num_gaussians': 200,
         'cutoff': 6.0,
+        'use_pbc': True,
         }
         weights_path = f"{weights_root}/schnet_all_large.pt"
-        model = set_up_model(model_class=SchNet, model_arguments=model_arguments, weights_path=weights_path, device=device)
+        model = set_up_model(model_class=SchNetWrap, model_arguments=model_arguments, weights_path=weights_path, device=device)
         experts.append(model)
 
     if 'painn' in model_names:
@@ -62,9 +65,3 @@ def load_experts(model_names: list, weights_root: str, device: str) -> list:
         model = set_up_model(model_class=PaiNN, model_arguments=model_arguments, weights_path=weights_path, device=device)
         experts.append(model)
     return experts
-
-def get_expert_output(expert, data):
-    if isinstance(expert, SchNet) or isinstance(expert, DimeNetPlusPlus):
-        return expert(z=data.atomic_numbers.long(), pos=data.pos_relaxed, batch=data.batch)
-    elif isinstance(expert, PaiNN):
-        return expert(data=data)['energy'].unsqueeze(1)
