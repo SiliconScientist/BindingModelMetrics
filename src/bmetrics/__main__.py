@@ -14,7 +14,8 @@ from torch.utils.data import Subset
 def main():
     config = Config(**toml.load("config.toml"))
     dataset = LmdbDataset({"src": config.data_root})
-    dataset = Subset(dataset, indices=list(range(config.subset_size)))
+    if not config.subset_size == 0:
+        dataset = Subset(dataset, indices=list(range(config.subset_size)))
     train, test = train_test_split(dataset, test_size=0.2, random_state=config.random_seed)
     train_dataloader = DataLoader(train, batch_size=config.batch_size, shuffle=False)
     test_dataloader = DataLoader(test, batch_size=config.batch_size, shuffle=False)
