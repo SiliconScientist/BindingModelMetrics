@@ -37,3 +37,16 @@ class MixtureOfExperts(nn.Module):
         weights = self.gating_network(x, data.edge_index, data.batch)
         weights = weights.unsqueeze(1).expand_as(expert_output)
         return torch.sum(expert_output * weights, dim=2)
+    
+
+class QuantileRegression(nn.Module):
+    def __init__(self, base_model, batch_size, num_quantiles) -> None:
+        super().__init__()
+        self.base_model = base_model
+        self.output_layer = nn.Linear(batch_size, num_quantiles)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.base_model(x)['energy']
+        x = x.squeeze(-1)
+        x = self.output_layer(x)
+        return x
