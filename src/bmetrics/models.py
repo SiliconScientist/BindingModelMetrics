@@ -1,9 +1,5 @@
 import torch
 import torch.nn as nn
-from torch_geometric.data import InMemoryDataset
-from torch.utils.data import Dataset, Subset
-from fairchem.core.datasets import LmdbDataset
-from torch_geometric.data import Data
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 from torch_geometric.nn import global_mean_pool
@@ -27,65 +23,17 @@ class GatingGCN(torch.nn.Module):
         return F.log_softmax(x, dim=1)
 
 
-class MyDataset(InMemoryDataset):
-    def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
-        super(MyDataset, self).__init__(root, transform, pre_transform, pre_filter)
-        self.data, self.slices = torch.load(self.processed_paths[0])
-
-    @property
-    def raw_paths(self):
-        return ['data.lmdb']
-    
-    @property
-    def processed_paths(self):
-        return ['data_processed.pt']
-    
-    def download(self):
-        pass
-
-    def process(self):
-        self.data = LmdbDataset({"src": self.raw_dir})
-        data_list = []
-        for data in self.data:
-            x = data.atomic_numbers
-            pos = data.pos_relaxed
-            edge_index = data.edge_index
-            y = data.y_relaxed
-
-            # Create a PyTorch Geometric Data object
-            data = Data(x=x, pos=pos, edge_index=edge_index, y=y)
-            data_list.append(data)
-        data, slices = self.collate(data_list)
-        torch.save((data, slices), self.processed_paths[0])
-
-    
-    def __getitem__(self, idx: int):
-        data = self.get(idx)  # PyG Data object
-        return data
-
-
-# Mixture of Experts Model
 class MixtureOfExperts(nn.Module):
-    def __init__(self, trained_experts, gating_network):
+    def __init__(self, trained_experts, gating_network, device):
         super(MixtureOfExperts, self).__init__()
         self.experts = nn.ModuleList(trained_experts)
         self.gating_network = gating_network
+        self.device = device
 
     def forward(self, data):
-        expert_outputs = [expert(z=data.x.long(), pos=data.pos, batch=data.batch) for expert in self.experts]
-        expert_outputs = torch.stack(expert_outputs, dim=2) # shape: (batch_size, num_experts, output_dim)
-        x = torch.cat([data.x.unsqueeze(1), data.pos], dim=-1)
-        # Get gating weights
+        expert_output = [expert(data)['energy'] for expert in self.experts]
+        expert_output = torch.stack(expert_output, dim=2) # shape: (batch_size, num_experts, output_dim)
+        x = torch.cat([data.atomic_numbers.unsqueeze(1), data.pos], dim=-1)
         weights = self.gating_network(x, data.edge_index, data.batch)
-        weights = weights.unsqueeze(1).expand_as(expert_outputs)
-        return torch.sum(expert_outputs * weights, dim=2)
-
-
-# Create experts (you can replace these with your pre-trained models)
-class SimpleExpert(nn.Module):
-    def __init__(self, input_dim, output_dim):
-        super(SimpleExpert, self).__init__()
-        self.fc = nn.Linear(input_dim, output_dim)
-
-    def forward(self, x):
-        return self.fc(x)
+        weights = weights.unsqueeze(1).expand_as(expert_output)
+        return torch.sum(expert_output * weights, dim=2)

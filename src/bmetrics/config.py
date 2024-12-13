@@ -4,7 +4,7 @@ from pydantic import BaseModel
 class Config(BaseModel):
     random_seed: int
     data_root: str
-    subset_size: int
+    subset_size: int # 0 means no subset
     weights_root: str
     device: str
     input_dim: int
