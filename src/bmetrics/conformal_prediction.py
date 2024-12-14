@@ -17,8 +17,8 @@ dataset = LmdbDataset({"src": config.data_root})
 if not config.subset_size == 0:
     dataset = Subset(dataset, indices=list(range(config.subset_size)))
 train, test = train_test_split(dataset, test_size=0.2, random_state=config.random_seed)
-train_dataloader = DataLoader(train, batch_size=config.batch_size, shuffle=False)
-test_dataloader = DataLoader(test, batch_size=config.batch_size, shuffle=False)
+train_dataloader = DataLoader(train, batch_size=config.batch_size, shuffle=False, drop_last=True)
+test_dataloader = DataLoader(test, batch_size=config.batch_size, shuffle=False, drop_last=True)
 trained_experts = load_experts(model_names=config.model_names, weights_root=config.weights_root, device=config.device)
 base_model = trained_experts[0]
 quantiles = [0.05, 0.95]
@@ -42,11 +42,15 @@ for epoch in range(config.num_epochs):
     print(f"Epoch [{epoch+1}/{config.num_epochs}], Loss: {loss.item():.4f}")
 model.eval()
 total_loss = 0.0
+all_preds = []
+all_targets = []
 with torch.no_grad():
     for data in test_dataloader:
         data = data.to(config.device)
         pred = model(data)
         loss = criterion(pred, data.energy.unsqueeze(-1))
         total_loss += loss.item()
+        all_preds.append(pred)
+        all_targets.append(data.energy)
 average_loss = total_loss / len(test_dataloader)
 print(f"Test Loss: {average_loss}")
