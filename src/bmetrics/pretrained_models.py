@@ -4,13 +4,10 @@ from fairchem.core.models.schnet import SchNetWrap
 from fairchem.core.models.painn import PaiNN
 
 
-def set_up_model(model_class, model_arguments: dict, weights_path: str, device: str, freeze_parameters=False,) -> torch.nn.Module:
+def set_up_model(model_class, model_arguments: dict, weights_path: str, device: str,) -> torch.nn.Module:
     model = model_class(**model_arguments).to(device)
     weights = torch.load(weights_path, map_location=torch.device(device), weights_only=True)
     model.load_state_dict(weights["state_dict"], strict=False)
-    if freeze_parameters:
-        for param in model.parameters():
-            param.requires_grad = False
     return model
 
 def load_experts(model_names: list, weights_root: str, device: str) -> list:
@@ -26,7 +23,6 @@ def load_experts(model_names: list, weights_root: str, device: str) -> list:
         'num_before_skip': 1,
         'num_after_skip': 2,
         'num_output_layers': 3,
-        'regress_forces': True,
         'use_pbc': True,
         'otf_graph': True,
         }

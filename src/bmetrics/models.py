@@ -12,14 +12,14 @@ class GatingGCN(torch.nn.Module):
         self.conv2 = GCNConv(hidden_channels, hidden_channels)
         self.lin = nn.Linear(hidden_channels, num_experts)
 
-    def forward(self, x, edge_index, batch):
-        # 1. Obtain node embeddings 
-        x = self.conv1(x, edge_index)
+    def forward(self, data):
+        x = torch.cat([data.atomic_numbers.unsqueeze(1), data.pos], dim=-1)
+        x = self.conv1(x, data.edge_index)
         x = x.relu()
         x = F.dropout(x, p=0.5, training=self.training)
-        x = self.conv2(x, edge_index)
+        x = self.conv2(x, data.edge_index)
         x = self.lin(x)
-        x = global_mean_pool(x, batch)
+        x = global_mean_pool(x, data.batch)
         return F.log_softmax(x, dim=1)
 
 
@@ -27,13 +27,19 @@ class MixtureOfExperts(nn.Module):
     def __init__(self, trained_experts, gating_network, device):
         super(MixtureOfExperts, self).__init__()
         self.experts = nn.ModuleList(trained_experts)
-        self.gating_network = gating_network
-        self.device = device
+        self.gating_network = gating_network.to(device)
 
     def forward(self, data):
-        expert_output = [expert(data)['energy'] for expert in self.experts]
-        expert_output = torch.stack(expert_output, dim=2) # shape: (batch_size, num_experts, output_dim)
-        x = torch.cat([data.atomic_numbers.unsqueeze(1), data.pos], dim=-1)
-        weights = self.gating_network(x, data.edge_index, data.batch)
-        weights = weights.unsqueeze(1).expand_as(expert_output)
-        return torch.sum(expert_output * weights, dim=2)
+
+        # Matrix shape: [batch_size, num_experts, output_dim=1]
+        prediction_matrix = torch.stack([expert(data)['energy'] for expert in self.experts], dim=1)
+
+        # Matrix shape: [batch_size, output_dim=1, num_experts]
+        weights_matrix = self.gating_network(data).unsqueeze(1)
+
+        # Matrix shape: [batch_size, output_dim=1, output_dim=1]
+        weighted_prediction_matrix = prediction_matrix @ weights_matrix
+
+        # Take the trace of the matrix to extract the final prediction
+        predictions = torch.diagonal(weighted_prediction_matrix, dim1=1, dim2=2).sum(dim=1)
+        return predictions

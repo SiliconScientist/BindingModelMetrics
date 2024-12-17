@@ -30,7 +30,7 @@ def main():
             # Forward pass
             data = data.to(config.device)
             pred = model(data)
-            loss = criterion(pred, data.energy.unsqueeze(-1))
+            loss = criterion(pred, data.energy)
             # Backward pass and optimization
             optimizer.zero_grad()
             loss.backward()
@@ -42,7 +42,7 @@ def main():
         for data in test_dataloader:
             data = data.to(config.device)
             pred = model(data)
-            loss = criterion(pred, data.energy.unsqueeze(-1))
+            loss = criterion(pred, data.energy)
             total_loss += loss.item()
     average_loss = total_loss / len(test_dataloader)
     print(f"Test Loss: {average_loss}")
