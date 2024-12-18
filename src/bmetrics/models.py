@@ -30,16 +30,10 @@ class MixtureOfExperts(nn.Module):
         self.gating_network = gating_network.to(device)
 
     def forward(self, data):
-
-        # Matrix shape: [batch_size, num_experts, output_dim=1]
+        # Matrix shape: [batch_size, num_experts, output_dim]
         prediction_matrix = torch.stack([expert(data)['energy'] for expert in self.experts], dim=1)
-
-        # Matrix shape: [batch_size, output_dim=1, num_experts]
-        weights_matrix = self.gating_network(data).unsqueeze(1)
-
-        # Matrix shape: [batch_size, output_dim=1, output_dim=1]
-        weighted_prediction_matrix = prediction_matrix @ weights_matrix
-
-        # Take the trace of the matrix to extract the final prediction
-        predictions = torch.diagonal(weighted_prediction_matrix, dim1=1, dim2=2).sum(dim=1)
+        weights_matrix = self.gating_network(data).unsqueeze(2)
+        weighted_prediction_matrix = prediction_matrix * weights_matrix
+        # Shape: [batch_size, output_dim]
+        predictions = weighted_prediction_matrix.sum(dim=1)
         return predictions
