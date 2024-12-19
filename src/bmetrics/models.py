@@ -35,5 +35,5 @@ class MixtureOfExperts(nn.Module):
         weights_matrix = self.gating_network(data).unsqueeze(2)
         weighted_prediction_matrix = prediction_matrix * weights_matrix
         # Shape: [batch_size, output_dim]
-        predictions = weighted_prediction_matrix.sum(dim=1)
-        return predictions
+        prediction = weighted_prediction_matrix.sum(dim=1)
+        return prediction

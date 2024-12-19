@@ -16,8 +16,10 @@ def main():
     dataset = LmdbDataset({"src": config.data_root})
     if not config.subset_size == 0:
         dataset = Subset(dataset, indices=list(range(config.subset_size)))
-    train, test = train_test_split(dataset, test_size=0.2, random_state=config.random_seed)
+    train, temp = train_test_split(dataset, test_size=0.3, random_state=config.random_seed)
+    val, test = train_test_split(temp, test_size=0.5, random_state=config.random_seed)
     train_dataloader = DataLoader(train, batch_size=config.batch_size, shuffle=False)
+    val_dataloader = DataLoader(val, batch_size=config.batch_size, shuffle=False)
     test_dataloader = DataLoader(test, batch_size=config.batch_size, shuffle=False)
     trained_experts = load_experts(model_names=config.model_names, weights_root=config.weights_root, device=config.device)
     num_experts = len(trained_experts)
@@ -26,23 +28,34 @@ def main():
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
     for epoch in range(config.num_epochs):
+        model.train()
+        train_loss = 0.0
         for data in train_dataloader:
-            # Forward pass
             data = data.to(config.device)
             pred = model(data)
-            loss = criterion(pred, data.energy)
-            # Backward pass and optimization
+            loss = criterion(pred, data.energy.unsqueeze(1))
+            train_loss += loss.item()
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-        print(f"Epoch [{epoch+1}/{config.num_epochs}], Loss: {loss.item():.4f}")
+        model.eval()  # Set the model to evaluation mode
+        val_loss = 0.0
+        with torch.no_grad():  # Disable gradient computation
+            for data in val_dataloader:
+                data = data.to(config.device)
+                pred = model(data)
+                loss = criterion(pred, data.energy.unsqueeze(1))
+                val_loss += loss.item()
+        train_loss /= len(train_dataloader)
+        val_loss /= len(val_dataloader)
+        print(f"Epoch {epoch+1}/{config.num_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
     model.eval()
     total_loss = 0.0
     with torch.no_grad():
         for data in test_dataloader:
             data = data.to(config.device)
             pred = model(data)
-            loss = criterion(pred, data.energy)
+            loss = criterion(pred, data.energy.unsqueeze(1))
             total_loss += loss.item()
     average_loss = total_loss / len(test_dataloader)
     print(f"Test Loss: {average_loss}")
