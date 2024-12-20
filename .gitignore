@@ -178,3 +178,6 @@ config.toml
 # SLURM files
 *.sh
 *slurm_output
+
+# Wandb files
+wandb/

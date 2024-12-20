@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch_geometric.loader import DataLoader
+import wandb
 from bmetrics.pretrained_models import load_experts
 from bmetrics.models import GatingGCN, MixtureOfExperts, EarlyStopping
 from bmetrics.config import Config
@@ -13,6 +14,15 @@ from torch.utils.data import Subset
 
 def main():
     config = Config(**toml.load("config.toml"))
+    wandb.init(project="Binding Model Metrics", 
+               config={'hidden_channels': config.hidden_channels,
+                       'batch_size': config.batch_size,
+                       'learning_rate': config.learning_rate,
+                       'num_epochs': config.num_epochs,
+                       'patience': config.patience,
+                       'delta': config.delta,
+                       }
+                )
     dataset = LmdbDataset({"src": config.data_root})
     if not config.subset_size == 0:
         dataset = Subset(dataset, indices=list(range(config.subset_size)))
@@ -49,6 +59,11 @@ def main():
                 val_loss += loss.item()
         train_loss /= len(train_dataloader)
         val_loss /= len(val_dataloader)
+        wandb.log({
+            "epoch": epoch + 1,
+            "train_loss": train_loss,
+            "val_loss": val_loss
+        })
         print(f"Epoch {epoch+1}/{config.num_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
         early_stopping(val_loss, model)
         if early_stopping.early_stop:
@@ -65,6 +80,7 @@ def main():
             total_loss += loss.item()
     average_loss = total_loss / len(test_dataloader)
     print(f"Test Loss: {average_loss}")
+    wandb.finish()
 
 
 if __name__ == "__main__":
