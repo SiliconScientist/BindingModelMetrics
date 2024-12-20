@@ -39,7 +39,7 @@ class MixtureOfExperts(nn.Module):
         return prediction
     
 class EarlyStopping:
-    def __init__(self, patience=5, delta=0):
+    def __init__(self, patience, delta):
         self.patience = patience
         self.delta = delta
         self.best_score = None
