@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch_geometric.loader import DataLoader
 from bmetrics.pretrained_models import load_experts
-from bmetrics.models import GatingGCN, MixtureOfExperts
+from bmetrics.models import GatingGCN, MixtureOfExperts, EarlyStopping
 from bmetrics.config import Config
 from sklearn.model_selection import train_test_split
 from fairchem.core.datasets import LmdbDataset
@@ -27,6 +27,7 @@ def main():
     model = MixtureOfExperts(trained_experts=trained_experts, gating_network=gating_network, device=config.device)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
+    early_stopping = EarlyStopping(patience=config.patience, delta=config.delta)
     for epoch in range(config.num_epochs):
         model.train()
         train_loss = 0.0
@@ -49,6 +50,11 @@ def main():
         train_loss /= len(train_dataloader)
         val_loss /= len(val_dataloader)
         print(f"Epoch {epoch+1}/{config.num_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
+        early_stopping(val_loss, model)
+        if early_stopping.early_stop:
+            print("Early stopping")
+            break
+    early_stopping.load_best_model(model)
     model.eval()
     total_loss = 0.0
     with torch.no_grad():

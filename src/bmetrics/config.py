@@ -12,4 +12,6 @@ class Config(BaseModel):
     batch_size: int
     learning_rate: float
     num_epochs: int
+    patience: int
+    delta: float
     model_names: list
