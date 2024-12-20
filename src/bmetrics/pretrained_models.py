@@ -10,7 +10,7 @@ def set_up_model(model_class, model_arguments: dict, weights_path: str, device: 
     model.load_state_dict(weights["state_dict"], strict=False)
     return model
 
-def load_experts(model_names: list, weights_root: str, device: str) -> list:
+def load_experts(model_names: list, models_root: str, device: str) -> list:
     experts = []
     if "dimenetpp" in model_names:
         model_arguments = {
@@ -26,7 +26,7 @@ def load_experts(model_names: list, weights_root: str, device: str) -> list:
         'use_pbc': True,
         'otf_graph': True,
         }
-        weights_path = f"{weights_root}/dimenetpp_all.pt"
+        weights_path = f"{models_root}/dimenetpp_all.pt"
         model = set_up_model(model_class=DimeNetPlusPlusWrap, model_arguments=model_arguments, weights_path=weights_path, device=device)
         experts.append(model)
 
@@ -40,7 +40,7 @@ def load_experts(model_names: list, weights_root: str, device: str) -> list:
         'use_pbc': True,
         'otf_graph': True,
         }
-        weights_path = f"{weights_root}/schnet_all_large.pt"
+        weights_path = f"{models_root}/schnet_all_large.pt"
         model = set_up_model(model_class=SchNetWrap, model_arguments=model_arguments, weights_path=weights_path, device=device)
         experts.append(model)
 
@@ -56,7 +56,7 @@ def load_experts(model_names: list, weights_root: str, device: str) -> list:
             'direct_forces': True,
             'use_pbc': True,
         }
-        weights_path = f"{weights_root}/painn/painn_all.pt"
+        weights_path = f"{models_root}/painn/painn_all.pt"
         model = set_up_model(model_class=PaiNN, model_arguments=model_arguments, weights_path=weights_path, device=device)
         experts.append(model)
     return experts
