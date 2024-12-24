@@ -37,6 +37,7 @@ def main():
     model = MixtureOfExperts(trained_experts=trained_experts, gating_network=gating_network, device=config.device)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
+    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
     early_stopping = EarlyStopping(patience=config.patience, delta=config.delta)
     for epoch in range(config.num_epochs):
         model.train()
@@ -50,6 +51,8 @@ def main():
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
+        scheduler.step()
+
         model.eval()  # Set the model to evaluation mode
         val_loss = 0.0
         with torch.no_grad():  # Disable gradient computation

@@ -11,6 +11,7 @@ class Config(BaseModel):
     hidden_channels: int
     batch_size: int
     learning_rate: float
+    gamma: float
     num_epochs: int
     patience: int
     delta: float
