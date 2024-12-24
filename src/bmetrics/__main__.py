@@ -18,6 +18,7 @@ def main():
                config={'hidden_channels': config.hidden_channels,
                        'batch_size': config.batch_size,
                        'learning_rate': config.learning_rate,
+                       'gamma': config.gamma,
                        'num_epochs': config.num_epochs,
                        'patience': config.patience,
                        'delta': config.delta,
