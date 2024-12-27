@@ -51,7 +51,7 @@ def load_experts(model_names: list, models_root: str, device: str) -> list:
             'num_rbf': 128,
             'cutoff': 12.0,
             'max_neighbors': 50,
-            'scale_file': 'models/painn/painn_nb6_scaling_factors.pt',
+            'scale_file': f'{models_root}/painn/painn_nb6_scaling_factors.pt',
             'regress_forces': True,
             'direct_forces': True,
             'use_pbc': True,
