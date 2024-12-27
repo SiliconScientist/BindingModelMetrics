@@ -1,6 +1,7 @@
 import torch
-from fairchem.core.models.dimenet_plus_plus import DimeNetPlusPlusWrap
-from fairchem.core.models.schnet import SchNetWrap
+from fairchem.core.models.dimenet_plus_plus import DimeNetPlusPlusWrap, DimeNetPlusPlus
+from fairchem.core.models.schnet import SchNetWrap, SchNet
+from fairchem.core.models.painn import PaiNN
 from fairchem.core.models.equiformer_v2.equiformer_v2 import EquiformerV2Backbone, EquiformerV2EnergyHead
 
 
@@ -43,7 +44,21 @@ def load_experts(model_names: list, models_root: str, device: str) -> list:
         weights_path = f"{models_root}/schnet_all_large.pt"
         model = set_up_model(model_class=SchNetWrap, model_arguments=model_arguments, weights_path=weights_path, device=device)
         experts.append(model)
-
+    if 'painn' in model_names:
+        model_arguments = {
+            'hidden_channels': 512,
+            'num_layers': 6,
+            'num_rbf': 128,
+            'cutoff': 12.0,
+            'max_neighbors': 50,
+            'scale_file': 'models/painn/painn_nb6_scaling_factors.pt',
+            'regress_forces': True,
+            'direct_forces': True,
+            'use_pbc': True,
+        }
+        weights_path = f"{models_root}/painn/painn_all.pt"
+        model = set_up_model(model_class=PaiNN, model_arguments=model_arguments, weights_path=weights_path, device=device)
+        experts.append(model)
     if 'equiformerv2' in model_names:
         model_arguments = {
             'use_pbc': True,
@@ -89,13 +104,16 @@ def get_expert_output(data, model):
 
     Returns the expert predictions with shape [batch_size, output_dim]
     '''
-    if isinstance(model, DimeNetPlusPlusWrap):
+    if isinstance(model, DimeNetPlusPlus):
         prediction = model(data)['energy']
         return prediction
-    elif isinstance(model, SchNetWrap):
+    elif isinstance(model, SchNet):
         prediction = model(data)['energy']
         return prediction
-    elif isinstance(model, EquiformerV2Backbone):
+    elif isinstance(model, PaiNN): # type: ignore
+        prediction = model(data)['energy']
+        return prediction.unsqueeze(1)
+    elif isinstance(model, EquiformerV2Backbone): # type: ignore
         energy_head = EquiformerV2EnergyHead(model)
         emb = model(data)
         prediction = energy_head(data=data, emb=emb)['energy'].unsqueeze(1)
