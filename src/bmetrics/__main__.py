@@ -5,7 +5,7 @@ import torch.optim as optim
 from torch_geometric.loader import DataLoader
 import wandb
 from bmetrics.pretrained_models import load_experts
-from bmetrics.models import GatingGCN, MixtureOfExperts, EarlyStopping
+from bmetrics.models import GatingGCN, MixtureOfExperts
 from bmetrics.config import Config
 from sklearn.model_selection import train_test_split
 from fairchem.core.datasets import LmdbDataset
@@ -15,13 +15,11 @@ from torch.utils.data import Subset
 def main():
     config = Config(**toml.load("config.toml"))
     wandb.init(project="Binding Model Metrics", 
-               config={'hidden_channels': config.hidden_dim,
+               config={'hidden_dim': config.hidden_dim,
                        'batch_size': config.batch_size,
-                       'learning_rate': config.lr,
+                       'lr': config.lr,
                        'gamma': config.gamma,
-                       'num_epochs': config.num_epochs,
-                       'patience': config.patience,
-                       'delta': config.delta,
+                       'max_epochs': config.max_epochs,
                        }
                 )
     dataset = LmdbDataset({"src": config.data_root})
@@ -39,8 +37,7 @@ def main():
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=config.lr)
     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
-    early_stopping = EarlyStopping(patience=config.patience, delta=config.delta)
-    for epoch in range(config.num_epochs):
+    for epoch in range(config.max_epochs):
         model.train()
         train_loss = 0.0
         for data in train_dataloader:
@@ -53,7 +50,6 @@ def main():
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
         scheduler.step()
-
         model.eval()  # Set the model to evaluation mode
         val_loss = 0.0
         with torch.no_grad():  # Disable gradient computation
@@ -69,12 +65,7 @@ def main():
             "train_loss": train_loss,
             "val_loss": val_loss
         })
-        print(f"Epoch {epoch+1}/{config.num_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
-        early_stopping(val_loss, model)
-        if early_stopping.early_stop:
-            print("Early stopping")
-            break
-    early_stopping.load_best_model(model)
+        print(f"Epoch {epoch+1}/{config.max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
     model.eval()
     total_loss = 0.0
     with torch.no_grad():

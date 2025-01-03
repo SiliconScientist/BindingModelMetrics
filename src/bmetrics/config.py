@@ -13,7 +13,5 @@ class Config(BaseModel):
     batch_size: int
     lr: float
     gamma: float
-    num_epochs: int
-    patience: int
-    delta: float
+    max_epochs: int
     model_names: list
