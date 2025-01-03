@@ -15,9 +15,9 @@ from torch.utils.data import Subset
 def main():
     config = Config(**toml.load("config.toml"))
     wandb.init(project="Binding Model Metrics", 
-               config={'hidden_channels': config.hidden_channels,
+               config={'hidden_channels': config.hidden_dim,
                        'batch_size': config.batch_size,
-                       'learning_rate': config.learning_rate,
+                       'learning_rate': config.lr,
                        'gamma': config.gamma,
                        'num_epochs': config.num_epochs,
                        'patience': config.patience,
@@ -34,10 +34,10 @@ def main():
     test_dataloader = DataLoader(test, batch_size=config.batch_size, shuffle=False)
     trained_experts = load_experts(model_names=config.model_names, models_root=config.models_root, device=config.device)
     num_experts = len(trained_experts)
-    gating_network = GatingGCN(input_dim=config.input_dim, num_experts=num_experts, hidden_channels=config.hidden_channels).to(config.device)
+    gating_network = GatingGCN(input_dim=config.input_dim, num_experts=num_experts, hidden_channels=config.hidden_dim).to(config.device)
     model = MixtureOfExperts(trained_experts=trained_experts, gating_network=gating_network, device=config.device)
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=config.lr)
     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
     early_stopping = EarlyStopping(patience=config.patience, delta=config.delta)
     for epoch in range(config.num_epochs):

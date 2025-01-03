@@ -8,9 +8,9 @@ class Config(BaseModel):
     models_root: str
     device: str
     input_dim: int
-    hidden_channels: int
+    hidden_dim: int
     batch_size: int
-    learning_rate: float
+    lr: float
     gamma: float
     num_epochs: int
     patience: int

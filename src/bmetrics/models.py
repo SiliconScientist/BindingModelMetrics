@@ -19,8 +19,8 @@ class GatingGCN(torch.nn.Module):
         x = x.relu()
         x = F.dropout(x, p=0.5, training=self.training)
         x = self.conv2(x, data.edge_index)
-        x = self.lin(x)
         x = global_mean_pool(x, data.batch)
+        x = self.lin(x)
         return F.log_softmax(x, dim=1)
 
 
