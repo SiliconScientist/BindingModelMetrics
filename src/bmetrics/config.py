@@ -12,6 +12,8 @@ class Config(BaseModel):
     num_layers: int
     batch_size: int
     lr: float
+    momentum: float
+    nesterov: bool
     gamma: float
     max_epochs: int
     model_names: list

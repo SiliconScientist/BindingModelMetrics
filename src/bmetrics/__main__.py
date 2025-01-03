@@ -18,6 +18,8 @@ def main():
                config={'hidden_dim': config.hidden_dim,
                        'batch_size': config.batch_size,
                        'lr': config.lr,
+                       'momentum': config.momentum,
+                       'nesterov': config.nesterov,
                        'gamma': config.gamma,
                        'max_epochs': config.max_epochs,
                        }
@@ -35,7 +37,7 @@ def main():
     gating_network = GatingGCN(input_dim=config.input_dim, num_experts=num_experts, hidden_dim=config.hidden_dim, num_layers=config.num_layers).to(config.device)
     model = MixtureOfExperts(trained_experts=trained_experts, gating_network=gating_network, device=config.device)
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=config.lr)
+    optimizer = optim.SGD(model.parameters(), lr=config.lr, momentum=config.momentum, nesterov=config.nesterov)
     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
     for epoch in range(config.max_epochs):
         model.train()
