@@ -7,18 +7,21 @@ from bmetrics.pretrained_models import get_expert_output
 
 
 class GatingGCN(torch.nn.Module):
-    def __init__(self, input_dim: int, num_experts: int, hidden_channels: int):
+    def __init__(self, input_dim: int, num_experts: int, hidden_dim: int, num_layers: int):
         super().__init__()
-        self.conv1 = GCNConv(input_dim, hidden_channels)
-        self.conv2 = GCNConv(hidden_channels, hidden_channels)
-        self.lin = nn.Linear(hidden_channels, num_experts)
+        self.num_layers = num_layers
+        self.convs = nn.ModuleList()
+        self.convs.append(GCNConv(input_dim, hidden_dim))
+        for _ in range(num_layers - 1):
+            self.convs.append(GCNConv(hidden_dim, hidden_dim))
+        self.lin = nn.Linear(hidden_dim, num_experts)
 
     def forward(self, data):
         x = torch.cat([data.atomic_numbers.unsqueeze(1), data.pos], dim=-1)
-        x = self.conv1(x, data.edge_index)
-        x = x.relu()
-        x = F.dropout(x, p=0.5, training=self.training)
-        x = self.conv2(x, data.edge_index)
+        for conv in self.convs:
+            x = conv(x, data.edge_index)
+            x = x.relu()
+            x = F.dropout(x, p=0.5, training=self.training)
         x = global_mean_pool(x, data.batch)
         x = self.lin(x)
         return F.log_softmax(x, dim=1)
@@ -31,8 +34,9 @@ class MixtureOfExperts(nn.Module):
         self.gating_network = gating_network.to(device)
 
     def forward(self, data):
-        # Matrix shape: [batch_size, num_experts, output_dim]
-        prediction_matrix = torch.stack([get_expert_output(data=data, model=expert) for expert in self.experts], dim=1)
+        expert_outputs = [get_expert_output(data=data, model=expert) for expert in self.experts]
+        # Shape: [batch_size, num_experts, output_dim]
+        prediction_matrix = torch.stack(expert_outputs, dim=1) # type: ignore
         weights_matrix = self.gating_network(data).unsqueeze(2)
         weighted_prediction_matrix = prediction_matrix * weights_matrix
         # Shape: [batch_size, output_dim]

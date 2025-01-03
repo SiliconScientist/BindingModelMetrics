@@ -9,6 +9,7 @@ class Config(BaseModel):
     device: str
     input_dim: int
     hidden_dim: int
+    num_layers: int
     batch_size: int
     lr: float
     gamma: float

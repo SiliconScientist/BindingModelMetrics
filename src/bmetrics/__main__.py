@@ -34,7 +34,7 @@ def main():
     test_dataloader = DataLoader(test, batch_size=config.batch_size, shuffle=False)
     trained_experts = load_experts(model_names=config.model_names, models_root=config.models_root, device=config.device)
     num_experts = len(trained_experts)
-    gating_network = GatingGCN(input_dim=config.input_dim, num_experts=num_experts, hidden_channels=config.hidden_dim).to(config.device)
+    gating_network = GatingGCN(input_dim=config.input_dim, num_experts=num_experts, hidden_dim=config.hidden_dim, num_layers=config.num_layers).to(config.device)
     model = MixtureOfExperts(trained_experts=trained_experts, gating_network=gating_network, device=config.device)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=config.lr)
