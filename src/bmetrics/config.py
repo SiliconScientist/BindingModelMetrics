@@ -4,7 +4,7 @@ from pathlib import Path
 class FilePaths(BaseModel):
     data: Path
     models: Path
-    checkpoint: Path
+    checkpoints: Path
 
 class Config(BaseModel):
     random_seed: int

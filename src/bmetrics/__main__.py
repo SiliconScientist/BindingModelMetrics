@@ -1,3 +1,4 @@
+import os
 import toml
 import torch
 import torch.nn as nn
@@ -39,6 +40,9 @@ def main():
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr=config.lr, momentum=config.momentum, nesterov=config.nesterov)
     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
+    best_val_loss = float('inf')
+    best_checkpoint_path = None
+    os.makedirs(config.filepaths.checkpoints, exist_ok=True)
     for epoch in range(config.max_epochs):
         model.train()
         train_loss = 0.0
@@ -68,15 +72,29 @@ def main():
             "val_loss": val_loss
         })
         print(f"Epoch {epoch+1}/{config.max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
+        if val_loss < best_val_loss:
+            if best_checkpoint_path:
+                os.remove(best_checkpoint_path)
+            best_val_loss = val_loss
+            best_checkpoint_path = f"{config.filepaths.checkpoints}/best_model_epoch_{epoch + 1}.pth"
+            torch.save({
+                'epoch': epoch + 1,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': val_loss,
+            }, best_checkpoint_path)
+            print(f"New best model saved to {best_checkpoint_path}")
+    checkpoint = torch.load(best_checkpoint_path) # type: ignore
+    model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
-    total_loss = 0.0
+    test_loss = 0.0
     with torch.no_grad():
         for data in test_dataloader:
             data = data.to(config.device)
             pred = model(data)
             loss = criterion(pred, data.energy.unsqueeze(1))
-            total_loss += loss.item()
-    average_loss = total_loss / len(test_dataloader)
+            test_loss += loss.item()
+    average_loss = test_loss / len(test_dataloader)
     print(f"Test Loss: {average_loss}")
     wandb.finish()
 

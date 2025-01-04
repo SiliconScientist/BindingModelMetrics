@@ -164,6 +164,7 @@ cython_debug/
 # Data folders
 data/
 models/
+checkpoints/
 
 # Configuration file
 config.toml
