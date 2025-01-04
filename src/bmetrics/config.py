@@ -1,14 +1,16 @@
 from pydantic import BaseModel
 from pathlib import Path
 
+
 class FilePaths(BaseModel):
     data: Path
     models: Path
     checkpoints: Path
 
+
 class Config(BaseModel):
     random_seed: int
-    subset_size: int # 0 means no subset
+    subset_size: int  # 0 means no subset
     device: str
     input_dim: int
     hidden_dim: int

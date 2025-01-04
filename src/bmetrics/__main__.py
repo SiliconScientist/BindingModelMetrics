@@ -15,32 +15,54 @@ from torch.utils.data import Subset
 
 def main():
     config = Config(**toml.load("config.toml"))
-    wandb.init(project="Binding Model Metrics", 
-               config={'hidden_dim': config.hidden_dim,
-                       'batch_size': config.batch_size,
-                       'lr': config.lr,
-                       'momentum': config.momentum,
-                       'nesterov': config.nesterov,
-                       'gamma': config.gamma,
-                       'max_epochs': config.max_epochs,
-                       }
-                )
+    wandb.init(
+        project="Binding Model Metrics",
+        config={
+            "hidden_dim": config.hidden_dim,
+            "batch_size": config.batch_size,
+            "lr": config.lr,
+            "momentum": config.momentum,
+            "nesterov": config.nesterov,
+            "gamma": config.gamma,
+            "max_epochs": config.max_epochs,
+        },
+    )
     dataset = LmdbDataset({"src": str(config.filepaths.data)})
     if not config.subset_size == 0:
         dataset = Subset(dataset, indices=list(range(config.subset_size)))
-    train, temp = train_test_split(dataset, test_size=0.3, random_state=config.random_seed)
+    train, temp = train_test_split(
+        dataset, test_size=0.3, random_state=config.random_seed
+    )
     val, test = train_test_split(temp, test_size=0.5, random_state=config.random_seed)
     train_dataloader = DataLoader(train, batch_size=config.batch_size, shuffle=False)
     val_dataloader = DataLoader(val, batch_size=config.batch_size, shuffle=False)
     test_dataloader = DataLoader(test, batch_size=config.batch_size, shuffle=False)
-    trained_experts = load_experts(model_names=config.model_names, models_path=config.filepaths.models, device=config.device)
+    trained_experts = load_experts(
+        model_names=config.model_names,
+        models_path=config.filepaths.models,
+        device=config.device,
+    )
     num_experts = len(trained_experts)
-    gating_network = GatingGCN(input_dim=config.input_dim, num_experts=num_experts, hidden_dim=config.hidden_dim, num_layers=config.num_layers).to(config.device)
-    model = MixtureOfExperts(trained_experts=trained_experts, gating_network=gating_network, device=config.device)
+    gating_network = GatingGCN(
+        input_dim=config.input_dim,
+        num_experts=num_experts,
+        hidden_dim=config.hidden_dim,
+        num_layers=config.num_layers,
+    ).to(config.device)
+    model = MixtureOfExperts(
+        trained_experts=trained_experts,
+        gating_network=gating_network,
+        device=config.device,
+    )
     criterion = nn.MSELoss()
-    optimizer = optim.SGD(model.parameters(), lr=config.lr, momentum=config.momentum, nesterov=config.nesterov)
+    optimizer = optim.SGD(
+        model.parameters(),
+        lr=config.lr,
+        momentum=config.momentum,
+        nesterov=config.nesterov,
+    )
     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
-    best_val_loss = float('inf')
+    best_val_loss = float("inf")
     best_checkpoint_path = None
     os.makedirs(config.filepaths.checkpoints, exist_ok=True)
     for epoch in range(config.max_epochs):
@@ -66,26 +88,29 @@ def main():
                 val_loss += loss.item()
         train_loss /= len(train_dataloader)
         val_loss /= len(val_dataloader)
-        wandb.log({
-            "epoch": epoch + 1,
-            "train_loss": train_loss,
-            "val_loss": val_loss
-        })
-        print(f"Epoch {epoch+1}/{config.max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
+        wandb.log({"epoch": epoch + 1, "train_loss": train_loss, "val_loss": val_loss})
+        print(
+            f"Epoch {epoch+1}/{config.max_epochs}, Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}"
+        )
         if val_loss < best_val_loss:
             if best_checkpoint_path:
                 os.remove(best_checkpoint_path)
             best_val_loss = val_loss
-            best_checkpoint_path = f"{config.filepaths.checkpoints}/best_model_epoch_{epoch + 1}.pth"
-            torch.save({
-                'epoch': epoch + 1,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'loss': val_loss,
-            }, best_checkpoint_path)
+            best_checkpoint_path = (
+                f"{config.filepaths.checkpoints}/best_model_epoch_{epoch + 1}.pth"
+            )
+            torch.save(
+                {
+                    "epoch": epoch + 1,
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "loss": val_loss,
+                },
+                best_checkpoint_path,
+            )
             print(f"New best model saved to {best_checkpoint_path}")
-    checkpoint = torch.load(best_checkpoint_path) # type: ignore
-    model.load_state_dict(checkpoint['model_state_dict'])
+    checkpoint = torch.load(best_checkpoint_path)  # type: ignore
+    model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
     test_loss = 0.0
     with torch.no_grad():
