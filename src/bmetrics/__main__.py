@@ -24,7 +24,7 @@ def main():
                        'max_epochs': config.max_epochs,
                        }
                 )
-    dataset = LmdbDataset({"src": config.data_root})
+    dataset = LmdbDataset({"src": str(config.filepaths.data)})
     if not config.subset_size == 0:
         dataset = Subset(dataset, indices=list(range(config.subset_size)))
     train, temp = train_test_split(dataset, test_size=0.3, random_state=config.random_seed)
@@ -32,7 +32,7 @@ def main():
     train_dataloader = DataLoader(train, batch_size=config.batch_size, shuffle=False)
     val_dataloader = DataLoader(val, batch_size=config.batch_size, shuffle=False)
     test_dataloader = DataLoader(test, batch_size=config.batch_size, shuffle=False)
-    trained_experts = load_experts(model_names=config.model_names, models_root=config.models_root, device=config.device)
+    trained_experts = load_experts(model_names=config.model_names, models_path=config.filepaths.models, device=config.device)
     num_experts = len(trained_experts)
     gating_network = GatingGCN(input_dim=config.input_dim, num_experts=num_experts, hidden_dim=config.hidden_dim, num_layers=config.num_layers).to(config.device)
     model = MixtureOfExperts(trained_experts=trained_experts, gating_network=gating_network, device=config.device)

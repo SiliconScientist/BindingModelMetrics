@@ -1,3 +1,4 @@
+from pathlib import Path
 import torch
 from fairchem.core.models.dimenet_plus_plus import DimeNetPlusPlusWrap, DimeNetPlusPlus
 from fairchem.core.models.schnet import SchNetWrap, SchNet
@@ -11,7 +12,7 @@ def set_up_model(model_class, model_arguments: dict, weights_path: str, device: 
     model.load_state_dict(weights["state_dict"], strict=False)
     return model
 
-def load_experts(model_names: list, models_root: str, device: str) -> list:
+def load_experts(model_names: list, models_path: Path, device: str) -> list:
     experts = []
     if "dimenetpp" in model_names:
         model_arguments = {
@@ -27,7 +28,7 @@ def load_experts(model_names: list, models_root: str, device: str) -> list:
         'use_pbc': True,
         'otf_graph': True,
         }
-        weights_path = f"{models_root}/dimenetpp_all.pt"
+        weights_path = f"{models_path}/dimenetpp_all.pt"
         model = set_up_model(model_class=DimeNetPlusPlusWrap, model_arguments=model_arguments, weights_path=weights_path, device=device)
         experts.append(model)
 
@@ -41,7 +42,7 @@ def load_experts(model_names: list, models_root: str, device: str) -> list:
         'use_pbc': True,
         'otf_graph': True,
         }
-        weights_path = f"{models_root}/schnet_all_large.pt"
+        weights_path = f"{models_path}/schnet_all_large.pt"
         model = set_up_model(model_class=SchNetWrap, model_arguments=model_arguments, weights_path=weights_path, device=device)
         experts.append(model)
     if 'painn' in model_names:
@@ -51,12 +52,12 @@ def load_experts(model_names: list, models_root: str, device: str) -> list:
             'num_rbf': 128,
             'cutoff': 12.0,
             'max_neighbors': 50,
-            'scale_file': f'{models_root}/painn/painn_nb6_scaling_factors.pt',
+            'scale_file': f'{models_path}/painn/painn_nb6_scaling_factors.pt',
             'regress_forces': True,
             'direct_forces': True,
             'use_pbc': True,
         }
-        weights_path = f"{models_root}/painn/painn_all.pt"
+        weights_path = f"{models_path}/painn/painn_all.pt"
         model = set_up_model(model_class=PaiNN, model_arguments=model_arguments, weights_path=weights_path, device=device)
         experts.append(model)
     if 'equiformerv2' in model_names:
@@ -93,7 +94,7 @@ def load_experts(model_names: list, models_root: str, device: str) -> list:
             'proj_drop': 0.0,
             'weight_init': 'uniform',    # ['uniform', 'normal']
         }
-        weights_path = f"{models_root}/eq2_153M_ec4_allmd.pt"
+        weights_path = f"{models_path}/eq2_153M_ec4_allmd.pt"
         model = set_up_model(model_class=EquiformerV2Backbone, model_arguments=model_arguments, weights_path=weights_path, device=device)
         experts.append(model)
     return experts
@@ -111,7 +112,7 @@ def get_expert_output(data, model):
         prediction = model(data)['energy']
         return prediction
     elif isinstance(model, PaiNN): # type: ignore
-        prediction = model(data)['energy']
+        prediction = model(data)['energy'] # type: ignore
         return prediction.unsqueeze(1)
     elif isinstance(model, EquiformerV2Backbone): # type: ignore
         energy_head = EquiformerV2EnergyHead(model)
