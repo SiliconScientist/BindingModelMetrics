@@ -13,7 +13,7 @@ import wandb
 from bmetrics.config import Config
 from bmetrics.models import GatingGCN, MixtureOfExperts
 from bmetrics.pretrained_models import load_experts
-from bmetrics.train import evaluate
+from bmetrics.train import Trainer, evaluate
 
 
 def main():
@@ -37,9 +37,9 @@ def main():
         dataset, test_size=0.1, random_state=config.random_seed
     )
     val, test = train_test_split(temp, test_size=0.5, random_state=config.random_seed)
-    train_dataloader = DataLoader(train, batch_size=config.batch_size, shuffle=False)
-    val_dataloader = DataLoader(val, batch_size=config.batch_size, shuffle=False)
-    test_dataloader = DataLoader(test, batch_size=config.batch_size, shuffle=False)
+    train_loader = DataLoader(train, batch_size=config.batch_size, shuffle=False)
+    val_loader = DataLoader(val, batch_size=config.batch_size, shuffle=False)
+    test_loader = DataLoader(test, batch_size=config.batch_size, shuffle=False)
     trained_experts = load_experts(
         model_names=config.model_names,
         models_path=config.paths.models,
@@ -66,57 +66,22 @@ def main():
         nesterov=config.nesterov,
     )
     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
-    best_val_loss = float("inf")
-    best_checkpoint_path = None
-    os.makedirs(config.paths.checkpoints, exist_ok=True)
-    for epoch in range(config.max_epochs):
-        model.train()
-        train_loss = 0.0
-        for data in train_dataloader:
-            data = data.to(config.device)
-            optimizer.zero_grad()
-            pred = model(data)
-            loss = criterion(pred, data.energy)
-            train_loss += loss.item()
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimizer.step()
-        scheduler.step()
-        train_loss /= len(train_dataloader)
-        val_loss = evaluate(
-            model=model,
-            dataloader=val_dataloader,
-            criterion=criterion,
-            device=config.device,
-        )
-        wandb.log({"epoch": epoch + 1, "train_loss": train_loss, "val_loss": val_loss})
-        print(
-            f"Epoch {epoch+1}/{config.max_epochs}, "
-            f"Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}"
-        )
-        if val_loss < best_val_loss:
-            if best_checkpoint_path:
-                os.remove(best_checkpoint_path)
-            best_val_loss = val_loss
-            best_checkpoint_path = (
-                f"{config.paths.checkpoints}/best_model_epoch_{epoch + 1}.pth"
-            )
-            torch.save(
-                {
-                    "epoch": epoch + 1,
-                    "model_state_dict": model.state_dict(),
-                    "optimizer_state_dict": optimizer.state_dict(),
-                    "loss": val_loss,
-                },
-                best_checkpoint_path,
-            )
-            print(f"New best model saved to {best_checkpoint_path}")
-    checkpoint = torch.load(best_checkpoint_path)  # type: ignore
+    trainer = Trainer(
+        model=model,
+        criterion=criterion,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        config=config,
+    )
+    trainer.train()
+    checkpoint = torch.load(config.paths.checkpoints)  # type: ignore
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
     test_loss = evaluate(
         model=model,
-        dataloader=test_dataloader,
+        dataloader=test_loader,
         criterion=criterion,
         device=config.device,
     )
