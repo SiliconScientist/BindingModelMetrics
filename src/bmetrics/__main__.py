@@ -1,5 +1,3 @@
-import os
-
 import toml
 import torch
 import torch.nn as nn
@@ -18,18 +16,9 @@ from bmetrics.train import Trainer, evaluate
 
 def main():
     config = Config(**toml.load("config.toml"))
-    wandb.init(
-        project="Binding Model Metrics",
-        config={
-            "hidden_dim": config.hidden_dim,
-            "batch_size": config.batch_size,
-            "lr": config.lr,
-            "momentum": config.momentum,
-            "nesterov": config.nesterov,
-            "gamma": config.gamma,
-            "max_epochs": config.max_epochs,
-        },
-    )
+    torch.manual_seed(config.random_seed)
+    wandb_config = config.model.model_dump() | config.optimizer.model_dump()
+    wandb.init(project="Binding Model Metrics", config=wandb_config)
     dataset = LmdbDataset({"src": str(config.paths.data)})
     if not config.subset_size == 0:
         dataset = Subset(dataset, indices=list(range(config.subset_size)))
@@ -37,35 +26,30 @@ def main():
         dataset, test_size=0.1, random_state=config.random_seed
     )
     val, test = train_test_split(temp, test_size=0.5, random_state=config.random_seed)
-    train_loader = DataLoader(train, batch_size=config.batch_size, shuffle=False)
-    val_loader = DataLoader(val, batch_size=config.batch_size, shuffle=False)
-    test_loader = DataLoader(test, batch_size=config.batch_size, shuffle=False)
-    trained_experts = load_experts(
-        model_names=config.model_names,
+    train_loader = DataLoader(
+        train, batch_size=config.trainer.batch_size, shuffle=False
+    )
+    val_loader = DataLoader(val, batch_size=config.trainer.batch_size, shuffle=False)
+    test_loader = DataLoader(test, batch_size=config.trainer.batch_size, shuffle=False)
+    experts = load_experts(
+        model_names=config.model.names,
         models_path=config.paths.models,
         device=config.device,
     )
-    num_experts = len(trained_experts)
     gating_network = GatingGCN(
-        input_dim=config.input_dim,
-        num_experts=num_experts,
-        hidden_dim=config.hidden_dim,
-        num_layers=config.num_layers,
+        **config.model.model_dump(exclude={"names"}), experts=experts
     )
     gating_network.to(config.device)
     model = MixtureOfExperts(
-        trained_experts=trained_experts,
+        experts=experts,
         gating_network=gating_network,
         device=config.device,
     )
     criterion = nn.MSELoss()
-    optimizer = optim.SGD(
-        model.parameters(),
-        lr=config.lr,
-        momentum=config.momentum,
-        nesterov=config.nesterov,
+    optimizer = optim.SGD(model.parameters(), **config.optimizer.model_dump())
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, **config.scheduler.model_dump()
     )
-    scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=config.gamma)
     trainer = Trainer(
         model=model,
         criterion=criterion,

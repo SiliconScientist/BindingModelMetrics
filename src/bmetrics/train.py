@@ -40,7 +40,7 @@ class Trainer:
         self.config = config
 
     def train(self) -> None:
-        for epoch in range(self.config.max_epochs):
+        for epoch in range(self.config.trainer.max_epochs):
             self.model.train()
             train_loss = 0.0
             for data in self.train_loader:
@@ -64,7 +64,7 @@ class Trainer:
                 {"epoch": epoch + 1, "train_loss": train_loss, "val_loss": val_loss}
             )
             print(
-                f"Epoch {epoch+1}/{self.config.max_epochs}, "
+                f"Epoch {epoch+1}/{self.config.trainer.max_epochs}, "
                 f"Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}"
             )
             if val_loss < self.best_val_loss:

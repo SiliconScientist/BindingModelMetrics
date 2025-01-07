@@ -8,9 +8,14 @@ from bmetrics.pretrained_models import get_expert_output
 
 class GatingGCN(torch.nn.Module):
     def __init__(
-        self, input_dim: int, num_experts: int, hidden_dim: int, num_layers: int
+        self,
+        input_dim: int,
+        experts: list[nn.Module],
+        hidden_dim: int,
+        num_layers: int,
     ):
         super().__init__()
+        num_experts = len(experts)
         self.num_layers = num_layers
         self.convs = nn.ModuleList()
         self.convs.append(GCNConv(input_dim, hidden_dim))
@@ -29,9 +34,9 @@ class GatingGCN(torch.nn.Module):
 
 
 class MixtureOfExperts(nn.Module):
-    def __init__(self, trained_experts, gating_network, device):
+    def __init__(self, experts, gating_network, device):
         super(MixtureOfExperts, self).__init__()
-        self.experts = nn.ModuleList(trained_experts)
+        self.experts = nn.ModuleList(experts)
         self.gating_network = gating_network.to(device)
 
     def forward(self, data):
