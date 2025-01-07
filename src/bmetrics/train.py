@@ -8,7 +8,7 @@ def evaluate(model, criterion, dataloader, device):
     for data in dataloader:
         data = data.to(device)
         pred = model(data)
-        loss = criterion(pred, data.energy.unsqueeze(1))
+        loss = criterion(pred, data.energy)
         loss += loss.item()
     loss /= len(dataloader)
     return loss

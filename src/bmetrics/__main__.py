@@ -76,7 +76,7 @@ def main():
             data = data.to(config.device)
             optimizer.zero_grad()
             pred = model(data)
-            loss = criterion(pred, data.energy.unsqueeze(1))
+            loss = criterion(pred, data.energy)
             train_loss += loss.item()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
