@@ -37,7 +37,7 @@ class MixtureOfExperts(nn.Module):
     def forward(self, data):
         # Shape: [batch_size, num_experts, output_dim]
         prediction_matrix = torch.stack(
-            [get_expert_output(data=data, model=expert) for expert in self.experts],  # type: ignore
+            [get_expert_output(data=data, model=expert) for expert in self.experts],
             dim=1,
         )
         weights_matrix = self.gating_network(data).unsqueeze(2)

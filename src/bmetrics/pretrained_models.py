@@ -1,12 +1,13 @@
 from pathlib import Path
+
 import torch
-from fairchem.core.models.dimenet_plus_plus import DimeNetPlusPlusWrap, DimeNetPlusPlus
-from fairchem.core.models.schnet import SchNetWrap, SchNet
-from fairchem.core.models.painn import PaiNN
+from fairchem.core.models.dimenet_plus_plus import DimeNetPlusPlus, DimeNetPlusPlusWrap
 from fairchem.core.models.equiformer_v2.equiformer_v2 import (
     EquiformerV2Backbone,
     EquiformerV2EnergyHead,
 )
+from fairchem.core.models.painn import PaiNN
+from fairchem.core.models.schnet import SchNet, SchNetWrap
 
 
 def set_up_model(
@@ -137,17 +138,20 @@ def get_expert_output(data, model):
 
     Returns the expert predictions with shape [batch_size, output_dim]
     """
-    if isinstance(model, DimeNetPlusPlus):
-        prediction = model(data)["energy"]
-        return prediction
-    elif isinstance(model, SchNet):
-        prediction = model(data)["energy"]
-        return prediction
-    elif isinstance(model, PaiNN):  # type: ignore
-        prediction = model(data)["energy"]  # type: ignore
-        return prediction.unsqueeze(1)
-    elif isinstance(model, EquiformerV2Backbone):  # type: ignore
-        energy_head = EquiformerV2EnergyHead(model)
-        emb = model(data)
-        prediction = energy_head(data=data, emb=emb)["energy"].unsqueeze(1)
-        return prediction
+    match model:
+        case DimeNetPlusPlus():
+            prediction = model(data)["energy"]
+            return prediction
+        case SchNet():
+            prediction = model(data)["energy"]
+            return prediction
+        case PaiNN():  # type: ignore
+            prediction = model(data)["energy"]
+            return prediction.unsqueeze(1)
+        case EquiformerV2Backbone():  # type: ignore
+            energy_head = EquiformerV2EnergyHead(model)
+            emb = model(data)
+            prediction = energy_head(data=data, emb=emb)["energy"].unsqueeze(1)
+            return prediction
+        case _:
+            raise ValueError(f"Model '{model}' not recognized")

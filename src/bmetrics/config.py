@@ -1,8 +1,9 @@
-from pydantic import BaseModel
 from pathlib import Path
 
+from pydantic import BaseModel
 
-class FilePaths(BaseModel):
+
+class Paths(BaseModel):
     data: Path
     models: Path
     checkpoints: Path
@@ -22,4 +23,4 @@ class Config(BaseModel):
     gamma: float
     max_epochs: int
     model_names: list
-    filepaths: FilePaths
+    paths: Paths
