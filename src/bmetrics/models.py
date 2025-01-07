@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GCNConv
-from torch_geometric.nn import global_mean_pool
+from torch_geometric.nn import GCNConv, global_mean_pool
+
 from bmetrics.pretrained_models import get_expert_output
 
 
@@ -22,11 +22,10 @@ class GatingGCN(torch.nn.Module):
         x = torch.cat([data.atomic_numbers.unsqueeze(1), data.pos], dim=-1)
         for conv in self.convs:
             x = conv(x, data.edge_index)
-            x = x.relu()
-            x = F.dropout(x, p=0.5, training=self.training)
+            x = F.relu(x)
         x = global_mean_pool(x, data.batch)
         x = self.lin(x)
-        return F.log_softmax(x, dim=1)
+        return F.softmax(x, dim=1)
 
 
 class MixtureOfExperts(nn.Module):
@@ -40,7 +39,7 @@ class MixtureOfExperts(nn.Module):
         prediction_matrix = torch.stack(
             [get_expert_output(data=data, model=expert) for expert in self.experts],  # type: ignore
             dim=1,
-        )  # type: ignore
+        )
         weights_matrix = self.gating_network(data).unsqueeze(2)
         weighted_prediction_matrix = prediction_matrix * weights_matrix
         # Shape: [batch_size, output_dim]
