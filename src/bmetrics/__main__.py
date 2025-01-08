@@ -9,8 +9,7 @@ from torch_geometric.loader import DataLoader
 
 import wandb
 from bmetrics.config import Config
-from bmetrics.models import GatingGCN, MixtureOfExperts
-from bmetrics.pretrained_models import load_experts
+from bmetrics.models import make_moe
 from bmetrics.train import Trainer, evaluate
 
 
@@ -31,20 +30,7 @@ def main():
     )
     val_loader = DataLoader(val, batch_size=config.trainer.batch_size, shuffle=False)
     test_loader = DataLoader(test, batch_size=config.trainer.batch_size, shuffle=False)
-    experts = load_experts(
-        model_names=config.model.names,
-        models_path=config.paths.models,
-        device=config.device,
-    )
-    gating_network = GatingGCN(
-        **config.model.model_dump(exclude={"names"}), experts=experts
-    )
-    gating_network.to(config.device)
-    model = MixtureOfExperts(
-        experts=experts,
-        gating_network=gating_network,
-        device=config.device,
-    )
+    model = make_moe(config)
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), **config.optimizer.model_dump())
     scheduler = optim.lr_scheduler.CosineAnnealingLR(

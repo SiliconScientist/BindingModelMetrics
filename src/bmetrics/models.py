@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv, global_mean_pool
 
-from bmetrics.pretrained_models import get_expert_output
+from bmetrics.config import Config
+from bmetrics.pretrained_models import get_expert_output, load_experts
 
 
 class GatingGCN(torch.nn.Module):
@@ -50,3 +51,21 @@ class MixtureOfExperts(nn.Module):
         # Shape: [batch_size, output_dim]
         prediction = weighted_prediction_matrix.sum(dim=(1, 2))
         return prediction
+
+
+def make_moe(config: Config):
+    experts = load_experts(
+        model_names=config.model.names,
+        models_path=config.paths.models,
+        device=config.device,
+    )
+    gating_network = GatingGCN(
+        **config.model.model_dump(exclude={"names"}), experts=experts
+    )
+    gating_network.to(config.device)
+    model = MixtureOfExperts(
+        experts=experts,
+        gating_network=gating_network,
+        device=config.device,
+    )
+    return model
