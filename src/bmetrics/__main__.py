@@ -3,12 +3,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from fairchem.core.datasets import LmdbDataset
-from sklearn.model_selection import train_test_split
 from torch.utils.data import Subset
-from torch_geometric.loader import DataLoader
 
 import wandb
 from bmetrics.config import Config
+from bmetrics.dataset import split_train_val_test
 from bmetrics.models import make_moe
 from bmetrics.train import Trainer, evaluate
 
@@ -21,15 +20,7 @@ def main():
     dataset = LmdbDataset({"src": str(config.paths.data)})
     if not config.subset_size == 0:
         dataset = Subset(dataset, indices=list(range(config.subset_size)))
-    train, temp = train_test_split(
-        dataset, test_size=0.1, random_state=config.random_seed
-    )
-    val, test = train_test_split(temp, test_size=0.5, random_state=config.random_seed)
-    train_loader = DataLoader(
-        train, batch_size=config.trainer.batch_size, shuffle=False
-    )
-    val_loader = DataLoader(val, batch_size=config.trainer.batch_size, shuffle=False)
-    test_loader = DataLoader(test, batch_size=config.trainer.batch_size, shuffle=False)
+    dataloaders = split_train_val_test(dataset, config)
     model = make_moe(config)
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), **config.optimizer.model_dump())
@@ -41,8 +32,8 @@ def main():
         criterion=criterion,
         optimizer=optimizer,
         scheduler=scheduler,
-        train_loader=train_loader,
-        val_loader=val_loader,
+        train_loader=dataloaders.train,
+        val_loader=dataloaders.val,
         config=config,
     )
     trainer.train()
@@ -51,7 +42,7 @@ def main():
     model.eval()
     test_loss = evaluate(
         model=model,
-        dataloader=test_loader,
+        dataloader=dataloaders.test,
         criterion=criterion,
         device=config.device,
     )

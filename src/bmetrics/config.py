@@ -9,6 +9,13 @@ class Paths(BaseModel):
     checkpoints: Path
 
 
+class DataloaderConfig(BaseModel):
+    batch_size: int
+    num_workers: int
+    pin_memory: bool
+    persistent_workers: bool
+
+
 class ModelConfig(BaseModel):
     names: list[str]
     hidden_dim: int
@@ -28,7 +35,6 @@ class SchedulerConfig(BaseModel):
 
 
 class TrainerConfig(BaseModel):
-    batch_size: int
     max_epochs: int
 
 
@@ -36,6 +42,7 @@ class Config(BaseModel):
     random_seed: int
     subset_size: int  # 0 means no subset
     device: str
+    dataloader: DataloaderConfig
     model: ModelConfig
     optimizer: OptimizerConfig
     scheduler: SchedulerConfig
