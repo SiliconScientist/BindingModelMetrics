@@ -1,15 +1,12 @@
 import toml
 import torch
-import torch.nn as nn
-import torch.optim as optim
 from fairchem.core.datasets import LmdbDataset
 from torch.utils.data import Subset
 
 import wandb
 from bmetrics.config import Config
 from bmetrics.dataset import split_train_val_test
-from bmetrics.models import make_moe
-from bmetrics.train import Trainer, evaluate
+from bmetrics.train import make_trainer
 
 
 def main():
@@ -21,31 +18,9 @@ def main():
     if not config.subset_size == 0:
         dataset = Subset(dataset, indices=list(range(config.subset_size)))
     dataloaders = split_train_val_test(dataset, config)
-    model = make_moe(config)
-    criterion = nn.MSELoss()
-    optimizer = optim.SGD(model.parameters(), **config.optimizer.model_dump())
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, **config.scheduler.model_dump()
-    )
-    trainer = Trainer(
-        model=model,
-        criterion=criterion,
-        optimizer=optimizer,
-        scheduler=scheduler,
-        train_loader=dataloaders.train,
-        val_loader=dataloaders.val,
-        config=config,
-    )
+    trainer = make_trainer(config=config, dataloaders=dataloaders)
     trainer.train()
-    checkpoint = torch.load(config.paths.checkpoints)  # type: ignore
-    model.load_state_dict(checkpoint["model_state_dict"])
-    model.eval()
-    test_loss = evaluate(
-        model=model,
-        dataloader=dataloaders.test,
-        criterion=criterion,
-        device=config.device,
-    )
+    test_loss = trainer.test()
     print(f"Test Loss: {test_loss:.4f}")
     wandb.finish()
 

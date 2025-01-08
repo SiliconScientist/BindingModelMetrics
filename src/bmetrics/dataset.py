@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from functools import partial
 from sklearn.model_selection import train_test_split
-from fairchem.core.datasets import LmdbDataset
 from torch_geometric.loader import DataLoader
 
 

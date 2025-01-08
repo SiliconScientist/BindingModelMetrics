@@ -4,19 +4,8 @@ from torch_geometric.loader import DataLoader
 
 import wandb
 from bmetrics.config import Config
-
-
-@torch.no_grad()
-def evaluate(model, criterion, dataloader, device):
-    model.eval()  # Set the model to evaluation mode
-    loss = 0.0
-    for data in dataloader:
-        data = data.to(device)
-        pred = model(data)
-        loss = criterion(pred, data.energy)
-        loss += loss.item()
-    loss /= len(dataloader)
-    return loss
+from bmetrics.models import make_moe
+from bmetrics.dataset import DataloaderSplits
 
 
 class Trainer:
@@ -28,6 +17,7 @@ class Trainer:
         scheduler: optim.lr_scheduler.LRScheduler,
         train_loader: DataLoader,
         val_loader: DataLoader,
+        test_loader: DataLoader,
         config: Config,
     ):
         self.model = model
@@ -36,30 +26,29 @@ class Trainer:
         self.scheduler = scheduler
         self.train_loader = train_loader
         self.val_loader = val_loader
+        self.test_loader = test_loader
         self.best_val_loss = float("inf")
         self.config = config
+
+    def train_step(self, data):
+        data = data.to(self.config.device)
+        self.optimizer.zero_grad()
+        pred = self.model(data)
+        loss = self.criterion(pred, data.energy)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+        self.optimizer.step()
+        return loss.item()
 
     def train(self) -> None:
         for epoch in range(self.config.trainer.max_epochs):
             self.model.train()
             train_loss = 0.0
             for data in self.train_loader:
-                data = data.to(self.config.device)
-                self.optimizer.zero_grad()
-                pred = self.model(data)
-                loss = self.criterion(pred, data.energy)
-                train_loss += loss.item()
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-                self.optimizer.step()
+                train_loss += self.train_step(data)
             self.scheduler.step()
             train_loss /= len(self.train_loader)
-            val_loss = evaluate(
-                model=self.model,
-                dataloader=self.val_loader,
-                criterion=self.criterion,
-                device=self.config.device,
-            )
+            val_loss = self.validate()
             wandb.log(
                 {"epoch": epoch + 1, "train_loss": train_loss, "val_loss": val_loss}
             )
@@ -79,3 +68,43 @@ class Trainer:
                     self.config.paths.checkpoints,
                 )
                 print(f"New best model saved to {self.config.paths.checkpoints}")
+        weights = torch.load(self.config.paths.checkpoints)
+        self.model.load_state_dict(weights["model_state_dict"])
+
+    @torch.no_grad()
+    def evaluate(self, dataloader):
+        self.model.eval()  # Set the model to evaluation mode
+        loss = 0.0
+        for data in dataloader:
+            data = data.to(self.config.device)
+            pred = self.model(data)
+            loss = self.criterion(pred, data.energy)
+            loss += loss.item()
+        loss /= len(dataloader)
+        return loss
+
+    def validate(self) -> float:
+        return self.evaluate(self.val_loader)
+
+    def test(self) -> float:
+        return self.evaluate(self.test_loader)
+
+
+def make_trainer(config: Config, dataloaders: DataloaderSplits) -> Trainer:
+    model = make_moe(config)
+    criterion = nn.MSELoss()
+    optimizer = optim.SGD(model.parameters(), **config.optimizer.model_dump())
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, **config.scheduler.model_dump()
+    )
+    trainer = Trainer(
+        model=model,
+        criterion=criterion,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        train_loader=dataloaders.train,
+        val_loader=dataloaders.val,
+        test_loader=dataloaders.test,
+        config=config,
+    )
+    return trainer
