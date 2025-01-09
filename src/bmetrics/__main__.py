@@ -27,10 +27,14 @@ def main():
         if params["finetune"]:
             trainer.train()
         test_loss = trainer.test()
-        result = params | {"test_mse": test_loss}
+        result = params | {
+            "train_mse": trainer.best_train_loss,
+            "val_mse": trainer.best_val_loss,
+            "test_mse": test_loss,
+        }
         results.append(result)
-    df = pl.DataFrame(results)
-    df.write_parquet(config.paths.results)
+        df = pl.DataFrame(results)
+        df.write_parquet(config.paths.results)
     wandb.finish()
 
 

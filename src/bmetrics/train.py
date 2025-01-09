@@ -26,6 +26,7 @@ class Trainer:
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.test_loader = test_loader
+        self.best_train_loss = float("inf")
         self.best_val_loss = float("inf")
         self.config = config
 
@@ -55,6 +56,7 @@ class Trainer:
                     {"epoch": epoch + 1, "train_loss": train_loss, "val_loss": val_loss}
                 )
             if val_loss < self.best_val_loss:
+                self.best_train_loss = train_loss
                 self.best_val_loss = val_loss
                 torch.save(
                     {
