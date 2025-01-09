@@ -40,6 +40,8 @@ class Trainer:
         return loss.item()
 
     def train(self) -> None:
+        if self.config.fast_dev_run:
+            self.config.trainer.max_epochs = 1
         for epoch in range(self.config.trainer.max_epochs):
             self.model.train()
             train_loss = 0.0
