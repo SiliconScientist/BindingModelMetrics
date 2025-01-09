@@ -40,8 +40,8 @@ class TrainerConfig(BaseModel):
 
 class Config(BaseModel):
     random_seed: int
-    subset_size: int  # 0 means no subset
     device: str
+    fast_dev_run: bool
     log: bool
     paths: Paths
     dataloader: DataloaderConfig

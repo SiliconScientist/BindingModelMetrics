@@ -2,7 +2,6 @@ import polars as pl
 import toml
 import torch
 from fairchem.core.datasets import LmdbDataset
-from torch.utils.data import Subset
 
 import wandb
 from bmetrics.config import Config
@@ -19,8 +18,6 @@ def main():
         wandb_config = config.model.model_dump() | config.optimizer.model_dump()
         wandb.init(project="Binding Model Metrics", config=wandb_config)
     dataset = LmdbDataset({"src": str(config.paths.data)})
-    if not config.subset_size == 0:
-        dataset = Subset(dataset, indices=list(range(config.subset_size)))
     dataloaders = split_train_val_test(dataset, config)
     experiment = make_experiment()
     results = []
