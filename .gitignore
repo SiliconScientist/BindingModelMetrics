@@ -163,7 +163,7 @@ cython_debug/
 
 # Data folders
 data/
-models/
+experts/
 checkpoints/
 
 # Configuration file

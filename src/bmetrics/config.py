@@ -5,8 +5,14 @@ from pydantic import BaseModel
 
 class Paths(BaseModel):
     data: Path
-    models: Path
+    experts: Path
     checkpoints: Path
+
+
+class Experiments(BaseModel):
+    expert_names: list[str]
+    moe: list[bool]
+    fine_tune: list[bool]
 
 
 class DataloaderConfig(BaseModel):
@@ -17,7 +23,6 @@ class DataloaderConfig(BaseModel):
 
 
 class ModelConfig(BaseModel):
-    names: list[str]
     hidden_dim: int
     input_dim: int
     num_layers: int
@@ -42,9 +47,10 @@ class Config(BaseModel):
     random_seed: int
     subset_size: int  # 0 means no subset
     device: str
+    paths: Paths
+    experiments: Experiments
     dataloader: DataloaderConfig
     model: ModelConfig
     optimizer: OptimizerConfig
     scheduler: SchedulerConfig
     trainer: TrainerConfig
-    paths: Paths
