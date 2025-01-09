@@ -1,11 +1,11 @@
-import os
-
 import toml
 import torch
 import torch.nn as nn
 from fairchem.core.models.dimenet_plus_plus import DimeNetPlusPlusWrap
 from fairchem.core.models.painn import PaiNN
 from fairchem.core.models.schnet import SchNetWrap
+
+from bmetrics.config import Config
 
 
 class DNPP(nn.Module):
@@ -42,20 +42,20 @@ MODEL_CLASSES = {
 }
 
 
-def load_model(name: str, device: str) -> nn.Module:
-    config = toml.load("pretrained.toml")
+def load_model(name: str, config: Config) -> nn.Module:
+    expert_config = toml.load("pretrained.toml")
     model_class, wrapper, weights_filename = MODEL_CLASSES[name]
-    weights_path = os.path.join("experts", weights_filename)
-    model = model_class(**config[name])
+    weights_path = config.paths.experts / weights_filename
+    model = model_class(**expert_config[name])
     model = wrapper(model)
     weights = torch.load(
-        weights_path, map_location=torch.device(device), weights_only=True
+        weights_path, map_location=torch.device(config.device), weights_only=True
     )
     model.load_state_dict(weights["state_dict"], strict=False)
-    model.to(device)
+    model.to(config.device)
     return model
 
 
-def load_experts(names: list, device: str) -> nn.ModuleList:
-    experts = nn.ModuleList([load_model(name=name, device=device) for name in names])
+def load_experts(names: list, config: Config) -> nn.ModuleList:
+    experts = nn.ModuleList([load_model(name=name, config=config) for name in names])
     return experts

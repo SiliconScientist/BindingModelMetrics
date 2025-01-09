@@ -74,7 +74,7 @@ def make_moe(config: Config, experts: nn.ModuleList):
 
 
 def make_model(config: Config, expert_names: list[str], moe: bool) -> nn.Module:
-    experts = load_experts(names=expert_names, device=config.device)
+    experts = load_experts(names=expert_names, config=config)
     if moe:
         model = make_moe(config, experts)
     else:
