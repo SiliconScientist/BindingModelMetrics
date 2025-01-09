@@ -7,12 +7,7 @@ class Paths(BaseModel):
     data: Path
     experts: Path
     checkpoints: Path
-
-
-class Experiments(BaseModel):
-    expert_names: list[str]
-    moe: list[bool]
-    fine_tune: list[bool]
+    results: Path
 
 
 class DataloaderConfig(BaseModel):
@@ -47,8 +42,8 @@ class Config(BaseModel):
     random_seed: int
     subset_size: int  # 0 means no subset
     device: str
+    log: bool
     paths: Paths
-    experiments: Experiments
     dataloader: DataloaderConfig
     model: ModelConfig
     optimizer: OptimizerConfig

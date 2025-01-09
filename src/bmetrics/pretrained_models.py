@@ -1,8 +1,9 @@
 import os
+
 import toml
 import torch
-from fairchem.core.models.dimenet_plus_plus import DimeNetPlusPlusWrap
 import torch.nn as nn
+from fairchem.core.models.dimenet_plus_plus import DimeNetPlusPlusWrap
 from fairchem.core.models.painn import PaiNN
 from fairchem.core.models.schnet import SchNetWrap
 
@@ -55,6 +56,6 @@ def load_model(name: str, device: str) -> nn.Module:
     return model
 
 
-def load_experts(names: list, device: str) -> list[nn.Module]:
-    experts = [load_model(name=name, device=device) for name in names]
+def load_experts(names: list, device: str) -> nn.ModuleList:
+    experts = nn.ModuleList([load_model(name=name, device=device) for name in names])
     return experts

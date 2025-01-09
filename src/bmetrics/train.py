@@ -4,7 +4,6 @@ from torch_geometric.loader import DataLoader
 
 import wandb
 from bmetrics.config import Config
-from bmetrics.models import make_moe
 from bmetrics.dataset import DataloaderSplits
 
 
@@ -49,13 +48,10 @@ class Trainer:
             self.scheduler.step()
             train_loss /= len(self.train_loader)
             val_loss = self.validate()
-            wandb.log(
-                {"epoch": epoch + 1, "train_loss": train_loss, "val_loss": val_loss}
-            )
-            print(
-                f"Epoch {epoch+1}/{self.config.trainer.max_epochs}, "
-                f"Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}"
-            )
+            if self.config.log:
+                wandb.log(
+                    {"epoch": epoch + 1, "train_loss": train_loss, "val_loss": val_loss}
+                )
             if val_loss < self.best_val_loss:
                 self.best_val_loss = val_loss
                 torch.save(
@@ -67,7 +63,6 @@ class Trainer:
                     },
                     self.config.paths.checkpoints,
                 )
-                print(f"New best model saved to {self.config.paths.checkpoints}")
         weights = torch.load(self.config.paths.checkpoints)
         self.model.load_state_dict(weights["model_state_dict"])
 
@@ -90,8 +85,9 @@ class Trainer:
         return self.evaluate(self.test_loader)
 
 
-def make_trainer(config: Config, dataloaders: DataloaderSplits) -> Trainer:
-    model = make_moe(config)
+def make_trainer(
+    config: Config, dataloaders: DataloaderSplits, model: nn.Module
+) -> Trainer:
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), **config.optimizer.model_dump())
     scheduler = optim.lr_scheduler.CosineAnnealingLR(

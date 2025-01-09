@@ -8,7 +8,7 @@ from bmetrics.pretrained_models import load_experts
 
 
 class Ensemble(nn.Module):
-    def __init__(self, experts) -> None:
+    def __init__(self, experts: nn.ModuleList) -> None:
         super().__init__()
         self.experts = experts
 
@@ -21,7 +21,7 @@ class GatingGCN(torch.nn.Module):
     def __init__(
         self,
         input_dim: int,
-        experts: list[nn.Module],
+        experts: nn.ModuleList,
         hidden_dim: int,
         num_layers: int,
     ):
@@ -60,11 +60,7 @@ class MixtureOfExperts(nn.Module):
         return prediction
 
 
-def make_moe(config: Config):
-    experts = load_experts(
-        names=config.experiments.expert_names,
-        device=config.device,
-    )
+def make_moe(config: Config, experts: nn.ModuleList):
     gating_network = GatingGCN(
         **config.model.model_dump(exclude={"names"}), experts=experts
     )
@@ -74,4 +70,13 @@ def make_moe(config: Config):
         gating_network=gating_network,
         device=config.device,
     )
+    return model
+
+
+def make_model(config: Config, expert_names: list[str], moe: bool) -> nn.Module:
+    experts = load_experts(names=expert_names, device=config.device)
+    if moe:
+        model = make_moe(config, experts)
+    else:
+        model = Ensemble(experts)
     return model
