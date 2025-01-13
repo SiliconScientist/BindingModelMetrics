@@ -1,15 +1,55 @@
 from pydantic import BaseModel
+from pathlib import Path
+
+
+class Paths(BaseModel):
+    data: Path
+    experts: Path
+    checkpoints: Path
+    results: Path
+
+
+class DataloaderConfig(BaseModel):
+    batch_size: int
+    num_workers: int
+    pin_memory: bool
+    persistent_workers: bool
+
+
+class ModelConfig(BaseModel):
+    hidden_dim: int
+    input_dim: int
+    num_layers: int
+
+
+class Criterion(BaseModel):
+    quantiles: list[float]
+
+
+class OptimizerConfig(BaseModel):
+    lr: float
+    momentum: float
+    nesterov: bool
+
+
+class SchedulerConfig(BaseModel):
+    T_max: int
+    eta_min: float
+
+
+class TrainerConfig(BaseModel):
+    max_epochs: int
 
 
 class Config(BaseModel):
     random_seed: int
-    data_root: str
-    subset_size: int # 0 means no subset
-    weights_root: str
     device: str
-    input_dim: int
-    hidden_channels: int
-    batch_size: int
-    learning_rate: float
-    num_epochs: int
-    model_names: list
+    fast_dev_run: bool
+    log: bool
+    paths: Paths
+    dataloader: DataloaderConfig
+    model: ModelConfig
+    criterion: Criterion
+    optimizer: OptimizerConfig
+    scheduler: SchedulerConfig
+    trainer: TrainerConfig

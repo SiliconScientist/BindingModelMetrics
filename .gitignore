@@ -163,10 +163,14 @@ cython_debug/
 
 # Data folders
 data/
-models/
+experts/
+checkpoints/
+results/
+
 
 # Configuration file
 config.toml
+pretrained.toml
 
 # Debugger functionality
 .vscode/
@@ -178,3 +182,9 @@ config.toml
 # SLURM files
 *.sh
 *slurm_output
+
+# Wandb files
+wandb/
+
+# .DS_Store files
+.DS_Store
