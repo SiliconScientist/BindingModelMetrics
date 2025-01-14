@@ -4,6 +4,9 @@ from pathlib import Path
 
 class Paths(BaseModel):
     data: Path
+    train: Path
+    val: Path
+    test: Path
     experts: Path
     checkpoints: Path
     results: Path
