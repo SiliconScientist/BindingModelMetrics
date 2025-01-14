@@ -14,7 +14,7 @@ class Ensemble(nn.Module):
 
     def forward(self, data):
         predictions = torch.stack([model(data) for model in self.experts], dim=1)
-        return predictions.mean(dim=1)
+        return predictions.mean(dim=1).squeeze()
 
 
 class GatingGCN(torch.nn.Module):
@@ -56,22 +56,22 @@ class MixtureOfExperts(nn.Module):
         weights_matrix = self.gating_network(data)
         weighted_prediction = predictions * weights_matrix
         # Shape: [batch_size, output_dim]
-        prediction = weighted_prediction.sum(dim=1).squeeze(-1)
+        prediction = weighted_prediction.sum(dim=1).squeeze()
         return prediction
 
 
-class QuantileRegression(nn.Module):
-    def __init__(self, base_model, batch_size, quantiles) -> None:
-        super().__init__()
-        self.base_model = base_model
-        self.quantiles = torch.tensor(quantiles)
-        self.num_quantiles = len(quantiles)
-        self.output_layer = nn.Linear(batch_size, self.num_quantiles)
+# class QuantileRegression(nn.Module):
+#     def __init__(self, base_model, batch_size, quantiles) -> None:
+#         super().__init__()
+#         self.base_model = base_model
+#         self.quantiles = torch.tensor(quantiles)
+#         self.num_quantiles = len(quantiles)
+#         self.output_layer = nn.Linear(batch_size, self.num_quantiles)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.base_model(x)
-        x = self.output_layer(x)
-        return x
+#     def forward(self, x: torch.Tensor) -> torch.Tensor:
+#         x = torch.tensor([self.base_model(x) for _ in range(self.num_quantiles)])
+#         x = self.output_layer(x)
+#         return x
 
 
 def make_moe(config: Config, experts: nn.ModuleList):
@@ -93,9 +93,9 @@ def make_model(config: Config, expert_names: list[str], moe: bool) -> nn.Module:
         model = make_moe(config, experts)
     else:
         model = Ensemble(experts)
-    model = QuantileRegression(
-        base_model=model,
-        batch_size=config.dataloader.batch_size,
-        quantiles=config.criterion.quantiles,
-    )
+    # model = QuantileRegression(
+    #     base_model=model,
+    #     batch_size=config.dataloader.batch_size,
+    #     quantiles=config.criterion.quantiles,
+    # )
     return model
