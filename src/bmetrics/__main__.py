@@ -1,11 +1,10 @@
 import polars as pl
 import toml
 import torch
-from fairchem.core.datasets import LmdbDataset
 
 import wandb
 from bmetrics.config import Config
-from bmetrics.dataset import split_train_val_test
+from bmetrics.dataset import get_dataloaders
 from bmetrics.experiment import make_experiment
 from bmetrics.models import make_model
 from bmetrics.train import make_trainer
@@ -17,8 +16,7 @@ def main():
     if config.log:
         wandb_config = config.model.model_dump() | config.optimizer.model_dump()
         wandb.init(project="Binding Model Metrics", config=wandb_config)
-    dataset = LmdbDataset({"src": str(config.paths.data)})
-    dataloaders = split_train_val_test(dataset, config)
+    dataloaders = get_dataloaders(config)
     experiment = make_experiment()
     results = []
     for params in experiment:

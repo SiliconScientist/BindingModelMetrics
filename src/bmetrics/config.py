@@ -5,6 +5,9 @@ from pydantic import BaseModel
 
 class Paths(BaseModel):
     data: Path
+    train: Path
+    val: Path
+    test: Path
     experts: Path
     checkpoints: Path
     results: Path
