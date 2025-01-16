@@ -6,6 +6,7 @@ class Paths(BaseModel):
     data: Path
     train: Path
     val: Path
+    cal: Path
     test: Path
     experts: Path
     checkpoints: Path

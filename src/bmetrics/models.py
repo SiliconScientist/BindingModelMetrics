@@ -65,12 +65,11 @@ class QuantileRegression(nn.Module):
         self,
         base_model,
         input_dim: int = 1,
-        quantiles: list[float] = [0.05, 0.95],
+        output_dim: int = 2,
     ) -> None:
         super().__init__()
         self.base_model = base_model
-        self.num_quantiles = len(quantiles)
-        self.output_layer = nn.Linear(input_dim, self.num_quantiles)
+        self.output_layer = nn.Linear(input_dim, output_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.base_model(x).unsqueeze(1)

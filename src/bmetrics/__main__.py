@@ -24,6 +24,7 @@ def main():
         trainer = make_trainer(config, dataloaders, model)
         if params["finetune"]:
             trainer.train()
+        prediction_set = trainer.conformalize()
         test_loss = trainer.test()
         result = params | {
             "train_mse": trainer.best_train_loss,

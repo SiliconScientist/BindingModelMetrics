@@ -55,10 +55,16 @@ raw_data = filter_reactions(reactions=reactions, bound_sites=bound_sites)
 tags = raw_data[0].get_tags()
 data_objects = a2g.convert_all(raw_data, disable_tqdm=True)
 train, temp = train_test_split(data_objects, test_size=0.1, random_state=123)
-val, test = train_test_split(temp, test_size=0.5, random_state=123)
-train_val_test = {"train": train, "validation": val, "test": test}
+test, temp = train_test_split(temp, test_size=0.5, random_state=123)
+val, cal = train_test_split(temp, test_size=0.5, random_state=123)
+train_val_cal_test = {
+    "train": train,
+    "validation": val,
+    "calibration": cal,
+    "test": test,
+}
 
-for split, data_objects in train_val_test.items():
+for split, data_objects in train_val_cal_test.items():
     output_dir = "data/mamun/" + split
     os.makedirs(output_dir, exist_ok=True)
     file_path = output_dir + "/data.lmdb"

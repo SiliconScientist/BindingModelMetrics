@@ -18,6 +18,7 @@ class Trainer:
         scheduler: optim.lr_scheduler.LRScheduler,
         train_loader: DataLoader,
         val_loader: DataLoader,
+        cal_loader: DataLoader,
         test_loader: DataLoader,
         config: Config,
     ):
@@ -27,9 +28,11 @@ class Trainer:
         self.scheduler = scheduler
         self.train_loader = train_loader
         self.val_loader = val_loader
+        self.cal_loader = cal_loader
         self.test_loader = test_loader
         self.best_train_loss = float("inf")
         self.best_val_loss = float("inf")
+        self.qhat = 0.0
         self.config = config
 
     def train_step(self, data):
@@ -88,18 +91,20 @@ class Trainer:
         return self.evaluate(self.val_loader)
 
     @torch.no_grad()
-    def calibrate(self) -> float:
+    def calibrate(self, alpha: float = 0.1) -> None:
         self.model.eval()
-        scores = []
-        for data in self.val_loader:
+        cal_scores = []
+        for data in self.cal_loader:
             data = data.to(self.config.device)
             pred = self.model(data)
-            losses = self.criterion(pred, data.energy, reduction=False)
-            score = get_calibration_score(losses=losses, target=data.energy)
-            scores.append(score)
-        scores = torch.cat(scores, dim=0)
-        quantile_score = np.quantile(scores, 0.9).item()
-        return quantile_score
+            score = torch.max(data.energy - pred[:, 0], pred[:, 1] - data.energy)
+            cal_scores.append(score)
+        cal_scores = torch.cat(cal_scores, dim=0).numpy()
+        n = cal_scores.shape[0]
+        qhat = np.quantile(
+            cal_scores, np.ceil((n + 1) * (1 - alpha)) / n, method="higher"
+        )
+        self.qhat = qhat
 
     def test(self) -> float | torch.Tensor:
         return self.evaluate(self.test_loader)
@@ -111,14 +116,23 @@ class Trainer:
             data = data.to(self.config.device)
             pred = self.model(data)
             predictions.append(pred)
-        predictions = torch.cat(predictions, dim=0)
+        predictions = torch.cat(predictions)
         return predictions
+
+    def conformalize(self):
+        self.calibrate()
+        predictions = self.predict(self.test_loader)
+        prediction_set = torch.stack(
+            [predictions[:, 0] - self.qhat, predictions[:, 1] + self.qhat],
+            dim=1,
+        )
+        return prediction_set
 
 
 def make_trainer(
     config: Config, dataloaders: DataloaderSplits, model: nn.Module
 ) -> Trainer:
-    criterion = QuantileLoss()
+    criterion = QuantileLoss(quantile=0.95)
     optimizer = optim.SGD(model.parameters(), **config.optimizer.model_dump())
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
         optimizer, **config.scheduler.model_dump()
@@ -130,6 +144,7 @@ def make_trainer(
         scheduler=scheduler,
         train_loader=dataloaders.train,
         val_loader=dataloaders.val,
+        cal_loader=dataloaders.cal,
         test_loader=dataloaders.test,
         config=config,
     )
