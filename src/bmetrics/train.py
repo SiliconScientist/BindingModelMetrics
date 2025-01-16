@@ -1,11 +1,12 @@
+import numpy as np
 import torch
 from torch import nn, optim
 from torch_geometric.loader import DataLoader
 
 import wandb
 from bmetrics.config import Config
+from bmetrics.criterion import QuantileLoss, get_calibration_score
 from bmetrics.dataset import DataloaderSplits
-from bmetrics.criterion import QuantileLoss
 
 
 class Trainer:
@@ -83,17 +84,41 @@ class Trainer:
         loss /= len(dataloader)
         return loss
 
-    def validate(self) -> float:
+    def validate(self) -> float | torch.Tensor:
         return self.evaluate(self.val_loader)
 
-    def test(self) -> float:
+    @torch.no_grad()
+    def calibrate(self) -> float:
+        self.model.eval()
+        scores = []
+        for data in self.val_loader:
+            data = data.to(self.config.device)
+            pred = self.model(data)
+            losses = self.criterion(pred, data.energy, reduction=False)
+            score = get_calibration_score(losses=losses, target=data.energy)
+            scores.append(score)
+        scores = torch.cat(scores, dim=0)
+        quantile_score = np.quantile(scores, 0.9).item()
+        return quantile_score
+
+    def test(self) -> float | torch.Tensor:
         return self.evaluate(self.test_loader)
+
+    def predict(self, loader):
+        self.model.eval()  # Set the model to evaluation mode
+        predictions = []
+        for data in loader:
+            data = data.to(self.config.device)
+            pred = self.model(data)
+            predictions.append(pred)
+        predictions = torch.cat(predictions, dim=0)
+        return predictions
 
 
 def make_trainer(
     config: Config, dataloaders: DataloaderSplits, model: nn.Module
 ) -> Trainer:
-    criterion = QuantileLoss(quantiles=config.criterion.quantiles)
+    criterion = QuantileLoss()
     optimizer = optim.SGD(model.parameters(), **config.optimizer.model_dump())
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
         optimizer, **config.scheduler.model_dump()

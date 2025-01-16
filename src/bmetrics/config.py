@@ -25,10 +25,6 @@ class ModelConfig(BaseModel):
     num_layers: int
 
 
-class Criterion(BaseModel):
-    quantiles: list[float]
-
-
 class OptimizerConfig(BaseModel):
     lr: float
     momentum: float
@@ -52,7 +48,6 @@ class Config(BaseModel):
     paths: Paths
     dataloader: DataloaderConfig
     model: ModelConfig
-    criterion: Criterion
     optimizer: OptimizerConfig
     scheduler: SchedulerConfig
     trainer: TrainerConfig
