@@ -18,7 +18,6 @@ def main():
         wandb.init(project="Binding Model Metrics", config=wandb_config)
     dataloaders = get_dataloaders(config)
     experiment = make_experiment()
-    pred_results = []
     results = []
     for params in experiment:
         model = make_model(config, expert_names=params["experts"], moe=params["moe"])
