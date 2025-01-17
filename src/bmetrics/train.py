@@ -76,7 +76,7 @@ class Trainer:
         self.model.load_state_dict(weights["model_state_dict"])
 
     @torch.no_grad()
-    def evaluate(self, dataloader):
+    def evaluate(self, dataloader) -> float:
         self.model.eval()  # Set the model to evaluation mode
         loss = 0.0
         for data in dataloader:
@@ -87,10 +87,10 @@ class Trainer:
         loss /= len(dataloader)
         return loss
 
-    def validate(self) -> float | torch.Tensor:
+    def validate(self) -> float:
         return self.evaluate(self.val_loader)
 
-    def test(self) -> float | torch.Tensor:
+    def test(self) -> float:
         return self.evaluate(self.test_loader)
 
     @torch.no_grad()
