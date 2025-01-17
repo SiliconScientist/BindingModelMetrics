@@ -18,13 +18,15 @@ def main():
         wandb.init(project="Binding Model Metrics", config=wandb_config)
     dataloaders = get_dataloaders(config)
     experiment = make_experiment()
+    pred_results = []
     results = []
     for params in experiment:
         model = make_model(config, expert_names=params["experts"], moe=params["moe"])
         trainer = make_trainer(config, dataloaders, model)
         if params["finetune"]:
             trainer.train()
-        prediction_set = trainer.conformalize()
+        # prediction_set = trainer.conformalize()
+        predictions, y_labels = trainer.predict(trainer.test_loader)
         test_loss = trainer.test()
         result = params | {
             "train_mse": trainer.best_train_loss,
@@ -34,6 +36,15 @@ def main():
         results.append(result)
         df = pl.DataFrame(results)
         df.write_parquet(config.paths.results)
+    pred_result = {
+        "y": y_labels.tolist(),
+        "upper_bound": predictions[:, 0].tolist(),
+        "lower_bound": predictions[:, 1].tolist(),
+        "y_pred": predictions.mean(dim=1).tolist(),
+    }
+    # pred_results.append(pred_result)
+    df = pl.DataFrame(pred_result)
+    df.write_parquet(config.paths.predictions)
     wandb.finish()
 
 

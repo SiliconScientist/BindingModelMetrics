@@ -5,7 +5,7 @@ from torch_geometric.loader import DataLoader
 
 import wandb
 from bmetrics.config import Config
-from bmetrics.criterion import QuantileLoss, get_calibration_score
+from bmetrics.criterion import QuantileLoss
 from bmetrics.dataset import DataloaderSplits
 
 
@@ -90,6 +90,9 @@ class Trainer:
     def validate(self) -> float | torch.Tensor:
         return self.evaluate(self.val_loader)
 
+    def test(self) -> float | torch.Tensor:
+        return self.evaluate(self.test_loader)
+
     @torch.no_grad()
     def calibrate(self, alpha: float = 0.1) -> None:
         self.model.eval()
@@ -106,27 +109,29 @@ class Trainer:
         )
         self.qhat = qhat
 
-    def test(self) -> float | torch.Tensor:
-        return self.evaluate(self.test_loader)
-
+    @torch.no_grad()
     def predict(self, loader):
         self.model.eval()  # Set the model to evaluation mode
         predictions = []
+        y_labels = []
         for data in loader:
             data = data.to(self.config.device)
             pred = self.model(data)
+            y_label = data.energy
             predictions.append(pred)
+            y_labels.append(y_label)
         predictions = torch.cat(predictions)
-        return predictions
+        y_labels = torch.cat(y_labels)
+        return predictions, y_labels
 
     def conformalize(self):
         self.calibrate()
-        predictions = self.predict(self.test_loader)
+        predictions, y_labels = self.predict(self.test_loader)
         prediction_set = torch.stack(
             [predictions[:, 0] - self.qhat, predictions[:, 1] + self.qhat],
             dim=1,
         )
-        return prediction_set
+        return prediction_set, y_labels
 
 
 def make_trainer(

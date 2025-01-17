@@ -11,6 +11,7 @@ class Paths(BaseModel):
     experts: Path
     checkpoints: Path
     results: Path
+    predictions: Path
 
 
 class DataloaderConfig(BaseModel):
