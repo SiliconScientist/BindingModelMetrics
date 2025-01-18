@@ -14,7 +14,7 @@ class QuantileLoss(nn.Module):
     def forward(
         self, pred: torch.Tensor, target: torch.Tensor, reduction: bool = True
     ) -> torch.Tensor:
-        target = target.unsqueeze(1)
+        target = target.unsqueeze(-1)
         losses = torch.max(
             self.quantile * (target - pred), (1 - self.quantile) * (pred - target)
         )
@@ -24,6 +24,6 @@ class QuantileLoss(nn.Module):
 
 
 def get_calibration_score(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-    target = target.unsqueeze(1)
+    target = target.unsqueeze(-1)
     score = torch.max(target - pred[:, 0], pred[:, 1] - target)
     return score

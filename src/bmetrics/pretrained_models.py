@@ -32,7 +32,7 @@ class PN(nn.Module):
         self.model = model
 
     def forward(self, data):
-        return self.model(data)["energy"].unsqueeze(1)
+        return self.model(data)["energy"].unsqueeze(-1)
 
 
 MODEL_CLASSES = {

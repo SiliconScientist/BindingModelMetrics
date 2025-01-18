@@ -56,7 +56,7 @@ class MixtureOfExperts(nn.Module):
         weights_matrix = self.gating_network(data)
         weighted_prediction = predictions * weights_matrix
         # Shape: [batch_size, output_dim]
-        prediction = weighted_prediction.sum(dim=1)
+        prediction = weighted_prediction.sum(dim=1).squeeze()
         return prediction
 
 
@@ -73,7 +73,7 @@ class QuantileRegression(nn.Module):
         self.output_layer = nn.Linear(input_dim, output_dim).to(device)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.base_model(x).unsqueeze(1)
+        x = self.base_model(x).unsqueeze(-1)
         x = self.output_layer(x)
         return x
 
