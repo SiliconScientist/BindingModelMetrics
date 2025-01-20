@@ -11,16 +11,13 @@ class QuantileLoss(nn.Module):
         super(QuantileLoss, self).__init__()  # Call the parent class initializer
         self.quantile = quantile
 
-    def forward(
-        self, pred: torch.Tensor, target: torch.Tensor, reduction: bool = True
-    ) -> torch.Tensor:
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         target = target.unsqueeze(-1)
         losses = torch.max(
             self.quantile * (target - pred), (1 - self.quantile) * (pred - target)
         )
-        if reduction:
-            return losses.mean()
-        return losses
+        loss = losses.mean()
+        return loss
 
 
 def get_calibration_score(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:

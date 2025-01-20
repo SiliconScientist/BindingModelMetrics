@@ -37,8 +37,8 @@ def main():
         df.write_parquet(config.paths.results)
     pred_result = {
         "y": y_labels.tolist(),
-        "upper_bound": predictions[:, 0].tolist(),
-        "lower_bound": predictions[:, 1].tolist(),
+        "lower_bound": predictions[:, 0].tolist(),
+        "upper_bound": predictions[:, 1].tolist(),
         "y_pred": predictions.mean(dim=1).tolist(),
     }
     # pred_results.append(pred_result)
