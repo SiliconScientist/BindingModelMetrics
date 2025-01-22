@@ -72,7 +72,7 @@ class Trainer:
                     },
                     self.config.paths.checkpoints,
                 )
-        weights = torch.load(self.config.paths.checkpoints)
+        weights = torch.load(self.config.paths.checkpoints, weights_only=True)
         self.model.load_state_dict(weights["model_state_dict"])
 
     @torch.no_grad()
