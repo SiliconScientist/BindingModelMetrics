@@ -137,7 +137,7 @@ class Trainer:
 def make_trainer(
     config: Config, dataloaders: DataloaderSplits, model: nn.Module
 ) -> Trainer:
-    criterion = QuantileLoss(quantile=0.95)
+    criterion = QuantileLoss(alpha=0.1)
     optimizer = optim.SGD(model.parameters(), **config.optimizer.model_dump())
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
         optimizer, **config.scheduler.model_dump()
