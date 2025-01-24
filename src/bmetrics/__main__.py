@@ -38,8 +38,8 @@ def main():
     pred_result = {
         "y": y_labels.tolist(),
         "lower_bound": predictions[:, 0].tolist(),
-        "upper_bound": predictions[:, 1].tolist(),
-        "y_pred": predictions.mean(dim=1).tolist(),
+        "median": predictions[:, 1].tolist(),
+        "upper_bound": predictions[:, 2].tolist(),
     }
     # pred_results.append(pred_result)
     df = pl.DataFrame(pred_result)

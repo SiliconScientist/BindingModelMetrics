@@ -66,7 +66,7 @@ class QuantileRegression(nn.Module):
         base_model,
         device,
         input_dim: int = 1,
-        output_dim: int = 2,
+        output_dim: int = 3,
     ) -> None:
         super().__init__()
         self.base_model = base_model

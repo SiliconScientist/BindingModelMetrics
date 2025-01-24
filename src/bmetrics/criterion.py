@@ -9,7 +9,7 @@ class QuantileLoss(nn.Module):
         alpha: float = 0.1,
     ) -> None:
         super(QuantileLoss, self).__init__()  # Call the parent class initializer
-        self.quantiles = [alpha / 2, 1 - alpha / 2]
+        self.quantiles = [alpha / 2, 0.5, 1 - alpha / 2]
         self.n_quantiles = len(self.quantiles)
 
     def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
