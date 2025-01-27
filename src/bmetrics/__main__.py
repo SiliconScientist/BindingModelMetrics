@@ -28,7 +28,7 @@ def main():
         predictions, y_labels = trainer.predict(trainer.test_loader)
         test_loss = trainer.test()
         result = params | {
-            "train_mse": trainer.best_train_loss,
+            "train_loss": trainer.best_train_loss,
             "val_mse": trainer.best_val_loss,
             "test_mse": test_loss,
         }

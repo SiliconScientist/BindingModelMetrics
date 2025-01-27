@@ -14,6 +14,7 @@ class Trainer:
         self,
         model: torch.nn.Module,
         criterion: ReducedQuantileLoss,
+        evaluator: nn.MSELoss,
         optimizer: optim.Optimizer,
         scheduler: optim.lr_scheduler.LRScheduler,
         train_loader: DataLoader,
@@ -24,6 +25,7 @@ class Trainer:
     ):
         self.model = model
         self.criterion = criterion
+        self.evaluator = evaluator
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.train_loader = train_loader
@@ -82,7 +84,8 @@ class Trainer:
         for data in dataloader:
             data = data.to(self.config.device)
             pred = self.model(data)
-            loss = self.criterion(pred, data.energy)
+            median_pred = pred[:, 1]
+            loss = self.evaluator(median_pred, data.energy)
             loss += loss.item()
         loss /= len(dataloader)
         return loss
@@ -138,6 +141,7 @@ def make_trainer(
     config: Config, dataloaders: DataloaderSplits, model: nn.Module
 ) -> Trainer:
     criterion = ReducedQuantileLoss(alpha=0.1)
+    evaluator = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), **config.optimizer.model_dump())
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
         optimizer, **config.scheduler.model_dump()
@@ -145,6 +149,7 @@ def make_trainer(
     trainer = Trainer(
         model=model,
         criterion=criterion,
+        evaluator=evaluator,
         optimizer=optimizer,
         scheduler=scheduler,
         train_loader=dataloaders.train,
