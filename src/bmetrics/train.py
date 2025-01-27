@@ -5,7 +5,7 @@ from torch_geometric.loader import DataLoader
 
 import wandb
 from bmetrics.config import Config
-from bmetrics.criterion import QuantileLoss
+from bmetrics.criterion import ReducedQuantileLoss
 from bmetrics.dataset import DataloaderSplits
 
 
@@ -13,7 +13,7 @@ class Trainer:
     def __init__(
         self,
         model: torch.nn.Module,
-        criterion: QuantileLoss,
+        criterion: ReducedQuantileLoss,
         optimizer: optim.Optimizer,
         scheduler: optim.lr_scheduler.LRScheduler,
         train_loader: DataLoader,
@@ -137,7 +137,7 @@ class Trainer:
 def make_trainer(
     config: Config, dataloaders: DataloaderSplits, model: nn.Module
 ) -> Trainer:
-    criterion = QuantileLoss(alpha=0.1)
+    criterion = ReducedQuantileLoss(alpha=0.1)
     optimizer = optim.SGD(model.parameters(), **config.optimizer.model_dump())
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
         optimizer, **config.scheduler.model_dump()
