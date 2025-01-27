@@ -171,6 +171,7 @@ results/
 # Configuration file
 config.toml
 pretrained.toml
+catalonia.toml
 
 # Debugger functionality
 .vscode/
