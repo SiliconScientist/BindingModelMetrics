@@ -14,7 +14,7 @@ class ReducedQuantileLoss(nn.Module):
 
     # Define the quantile loss
     def quantile_loss(self, y_true, y_pred, tau):
-        error = y_true - y_pred.unsqueeze(1)
+        error = y_true - y_pred
         loss = torch.mean(torch.max((tau - 1) * error, tau * error))
         return loss
 
