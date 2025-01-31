@@ -28,6 +28,7 @@ class ModelConfig(BaseModel):
 
 class OptimizerConfig(BaseModel):
     lr: float
+    weight_decay: float
     momentum: float
     nesterov: bool
 
