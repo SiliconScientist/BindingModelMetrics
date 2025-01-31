@@ -14,7 +14,7 @@ class Ensemble(nn.Module):
 
     def forward(self, data):
         predictions = torch.stack([model(data) for model in self.experts], dim=1)
-        return predictions.mean(dim=1)
+        return predictions.mean(dim=1).squeeze()
 
 
 class GatingGCN(torch.nn.Module):
