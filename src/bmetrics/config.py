@@ -24,7 +24,7 @@ class ModelConfig(BaseModel):
     hidden_dim: int
     input_dim: int
     num_layers: int
-    p: float
+    dropout: float
 
 
 class OptimizerConfig(BaseModel):
