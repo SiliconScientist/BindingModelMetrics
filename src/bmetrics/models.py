@@ -24,6 +24,7 @@ class GatingGCN(torch.nn.Module):
         experts: nn.ModuleList,
         hidden_dim: int,
         num_layers: int,
+        p: float,
     ):
         super().__init__()
         num_experts = len(experts)
@@ -33,12 +34,14 @@ class GatingGCN(torch.nn.Module):
         for _ in range(num_layers - 1):
             self.convs.append(GCNConv(hidden_dim, hidden_dim))
         self.lin = nn.Linear(hidden_dim, num_experts)
+        self.dropout = nn.Dropout(p)
 
     def forward(self, data):
         x = torch.cat([data.atomic_numbers.unsqueeze(1), data.pos], dim=-1)
         for conv in self.convs:
             x = conv(x, data.edge_index)
             x = F.relu(x)
+            x = self.dropout(x)
         x = global_mean_pool(x, data.batch)
         x = self.lin(x)
         return F.softmax(x, dim=1).unsqueeze(2)
