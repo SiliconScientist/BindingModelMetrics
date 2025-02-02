@@ -24,7 +24,7 @@ class GatingGCN(torch.nn.Module):
         experts: nn.ModuleList,
         hidden_dim: int,
         num_layers: int,
-        p: float,
+        dropout: float,
     ):
         super().__init__()
         num_experts = len(experts)
@@ -34,7 +34,7 @@ class GatingGCN(torch.nn.Module):
         for _ in range(num_layers - 1):
             self.convs.append(GCNConv(hidden_dim, hidden_dim))
         self.lin = nn.Linear(hidden_dim, num_experts)
-        self.dropout = nn.Dropout(p)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, data):
         x = torch.cat([data.atomic_numbers.unsqueeze(1), data.pos], dim=-1)
