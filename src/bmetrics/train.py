@@ -120,9 +120,8 @@ class Trainer:
         for data in loader:
             data = data.to(self.config.device)
             pred = self.model(data)
-            y_label = data.energy
             predictions.append(pred)
-            y_labels.append(y_label)
+            y_labels.append(data.energy)
         predictions = torch.cat(predictions)
         y_labels = torch.cat(y_labels)
         return predictions, y_labels
