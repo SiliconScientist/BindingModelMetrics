@@ -140,7 +140,7 @@ class Trainer:
 def make_trainer(
     config: Config, dataloaders: DataloaderSplits, model: nn.Module
 ) -> Trainer:
-    criterion = ReducedQuantileLoss(alpha=0.1)
+    criterion = ReducedQuantileLoss(model.quantiles)
     evaluator = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), **config.optimizer.model_dump())
     scheduler = optim.lr_scheduler.CosineAnnealingLR(

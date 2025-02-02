@@ -64,13 +64,14 @@ class QuantileRegression(nn.Module):
     def __init__(
         self,
         base_model,
+        alpha,
         device,
         input_dim: int = 1,
-        output_dim: int = 3,
     ) -> None:
         super().__init__()
         self.base_model = base_model
-        self.output_layer = nn.Linear(input_dim, output_dim).to(device)
+        self.quantiles = [alpha / 2, 0.5, 1 - alpha / 2]
+        self.output_layer = nn.Linear(input_dim, len(self.quantiles)).to(device)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.base_model(x).unsqueeze(-1)
@@ -97,5 +98,5 @@ def make_model(config: Config, expert_names: list[str], moe: bool) -> nn.Module:
         model = make_moe(config, experts)
     else:
         model = Ensemble(experts)
-    model = QuantileRegression(base_model=model, device=config.device)
+    model = QuantileRegression(base_model=model, alpha=0.1, device=config.device)
     return model
