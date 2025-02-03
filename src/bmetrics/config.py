@@ -27,6 +27,22 @@ class ModelConfig(BaseModel):
     dropout: float
 
 
+class ModelHParams(BaseModel):
+    hidden_dim: dict
+    num_layers: dict
+    dropout: dict
+
+
+class OptimizerHParams(BaseModel):
+    lr: dict
+    weight_decay: dict
+
+
+class Hyperparameters(BaseModel):
+    model: ModelHParams
+    optimizer: OptimizerHParams
+
+
 class OptimizerConfig(BaseModel):
     lr: float
     weight_decay: float
@@ -51,6 +67,7 @@ class Config(BaseModel):
     paths: Paths
     dataloader: DataloaderConfig
     model: ModelConfig
+    hyperparameters: Hyperparameters
     optimizer: OptimizerConfig
     scheduler: SchedulerConfig
     trainer: TrainerConfig
