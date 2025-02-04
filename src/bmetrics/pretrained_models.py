@@ -4,6 +4,10 @@ import torch.nn as nn
 from fairchem.core.models.dimenet_plus_plus import DimeNetPlusPlusWrap
 from fairchem.core.models.painn import PaiNN
 from fairchem.core.models.schnet import SchNetWrap
+from fairchem.core.models.equiformer_v2.equiformer_v2 import (
+    EquiformerV2Backbone,
+    EquiformerV2EnergyHead,
+)
 
 from bmetrics.config import Config
 
@@ -14,6 +18,7 @@ class DNPP(nn.Module):
         self.model = model
 
     def forward(self, data):
+        # Shape: [batch_size, output_dim]
         return self.model(data)["energy"]
 
 
@@ -23,6 +28,7 @@ class SN(nn.Module):
         self.model = model
 
     def forward(self, data):
+        # Shape: [batch_size, output_dim]
         return self.model(data)["energy"]
 
 
@@ -32,13 +38,27 @@ class PN(nn.Module):
         self.model = model
 
     def forward(self, data):
-        return self.model(data)["energy"].unsqueeze(1)
+        # Shape: [batch_size, output_dim]
+        return self.model(data)["energy"].unsqueeze(-1)
+
+
+class EQV2(nn.Module):
+    def __init__(self, backbone):
+        super().__init__()
+        self.backbone = backbone
+        self.energy_head = EquiformerV2EnergyHead(backbone)
+
+    def forward(self, data):
+        emb = self.backbone(data)
+        # Shape: [batch_size, output_dim]
+        return self.energy_head(data, emb)["energy"].unsqueeze(-1)
 
 
 MODEL_CLASSES = {
     "dimenetpp": (DimeNetPlusPlusWrap, DNPP, "dimenetpp_all.pt"),
     "schnet": (SchNetWrap, SN, "schnet_all_large.pt"),
     "painn": (PaiNN, PN, "painn_all.pt"),
+    "equiformerv2": (EquiformerV2Backbone, EQV2, "eq2_153M_ec4_allmd.pt"),
 }
 
 
