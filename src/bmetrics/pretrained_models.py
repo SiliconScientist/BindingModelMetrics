@@ -23,7 +23,7 @@ class DNPP(nn.Module):
         # Shape: [num_nodes, emb_channels]
         x = scatter(x["edge_embedding"], x["edge_idx"], dim=0)
         # Shape: [batch_size, emb_channels]
-        x = scatter(x, data.batch, dim=0)
+        x = global_mean_pool(x, data.batch)
         # Shape: [batch_size, output_dim]
         x = self.output_layer(x)
         return x
