@@ -1,9 +1,11 @@
 import toml
 import torch
 import torch.nn as nn
-from fairchem.core.models.dimenet_plus_plus import DimeNetPlusPlusWrap
+from torch_scatter import scatter
 from fairchem.core.models.painn import PaiNN
 from fairchem.core.models.schnet import SchNetWrap
+from fairchem.core.models.dimenet_plus_plus import DimeNetPlusPlusWrapBackbone
+from torch_geometric.nn import global_mean_pool
 
 from bmetrics.config import Config
 
@@ -12,9 +14,19 @@ class DNPP(nn.Module):
     def __init__(self, model):
         super().__init__()
         self.model = model
+        self.emb_channels = 192
+        self.output_dim = 3
+        self.output_layer = nn.Linear(self.emb_channels, self.output_dim)
 
     def forward(self, data):
-        return self.model(data)["energy"]
+        x = self.model(data)
+        # Shape: [num_nodes, emb_channels]
+        x = scatter(x["edge_embedding"], x["edge_idx"], dim=0)
+        # Shape: [batch_size, emb_channels]
+        x = scatter(x, data.batch, dim=0)
+        # Shape: [batch_size, output_dim]
+        x = self.output_layer(x)
+        return x
 
 
 class SN(nn.Module):
@@ -36,7 +48,11 @@ class PN(nn.Module):
 
 
 MODEL_CLASSES = {
-    "dimenetpp": (DimeNetPlusPlusWrap, DNPP, "dimenetpp_all.pt"),
+    "dimenetpp": (
+        DimeNetPlusPlusWrapBackbone,
+        DNPP,
+        "dimenetpp_all.pt",
+    ),
     "schnet": (SchNetWrap, SN, "schnet_all_large.pt"),
     "painn": (PaiNN, PN, "painn_all.pt"),
 }

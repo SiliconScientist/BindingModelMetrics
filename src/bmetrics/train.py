@@ -84,7 +84,7 @@ class Trainer:
         for data in dataloader:
             data = data.to(self.config.device)
             pred = self.model(data)
-            median_pred = pred[:, 1]
+            median_pred = pred[:, self.criterion.quantile_to_index[0.5]]
             loss = self.evaluator(median_pred, data.energy)
             loss += loss.item()
         loss /= len(dataloader)

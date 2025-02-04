@@ -11,10 +11,11 @@ class Ensemble(nn.Module):
     def __init__(self, experts: nn.ModuleList) -> None:
         super().__init__()
         self.experts = experts
+        self.output_dim = experts[0].output_dim
 
     def forward(self, data):
         predictions = torch.stack([model(data) for model in self.experts], dim=1)
-        return predictions.mean(dim=1).squeeze()
+        return predictions.mean(dim=1)
 
 
 class GatingGCN(torch.nn.Module):
@@ -66,16 +67,17 @@ class QuantileRegression(nn.Module):
         base_model,
         alpha,
         device,
-        input_dim: int = 1,
     ) -> None:
         super().__init__()
         self.base_model = base_model
         self.quantiles = [alpha / 2, 0.5, 1 - alpha / 2]
-        self.output_layer = nn.Linear(input_dim, len(self.quantiles)).to(device)
+        self.output_layer = nn.Linear(
+            self.base_model.output_dim, len(self.quantiles)
+        ).to(device)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.base_model(x).unsqueeze(-1)
-        x = self.output_layer(x)
+        x = self.base_model(x)  # shape: (batch_size, n_quantiles, 1)
+        x = self.output_layer(x)  # shape: (batch_size, n_quantiles)
         return x
 
 
