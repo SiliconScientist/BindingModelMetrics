@@ -88,6 +88,20 @@ class Trainer:
     def test(self) -> float:
         return self.evaluate(self.test_loader)
 
+    @torch.no_grad()
+    def predict(self, loader):
+        self.model.eval()  # Set the model to evaluation mode
+        predictions = []
+        y_labels = []
+        for data in loader:
+            data = data.to(self.config.device)
+            pred = self.model(data)
+            predictions.append(pred)
+            y_labels.append(data.energy)
+        predictions = torch.cat(predictions)
+        y_labels = torch.cat(y_labels)
+        return predictions, y_labels
+
 
 def make_trainer(
     config: Config, dataloaders: DataloaderSplits, model: nn.Module
