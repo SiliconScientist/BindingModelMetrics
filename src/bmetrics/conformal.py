@@ -1,25 +1,48 @@
 import torch
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 def within_interval(y: float, lower_bound: float, upper_bound) -> bool:
     return lower_bound <= y <= upper_bound
 
 
-x = torch.tensor([1, 2.0, 1, 8, 6, 6, 8, 12])
-hist = torch.histogram(x, bins=4, range=(0.0, 10.0))
-print(hist.hist)
-print(hist.bin_edges)
+def bin_to_indices(bin_indices, bin_edges):
+    binned_samples = {i: [] for i in range(1, len(bin_edges))}
+    for idx, bin_index in enumerate(bin_indices):
+        if bin_index in binned_samples:  # Ensure the index is within range
+            binned_samples[bin_index].append(idx)
+    return binned_samples
 
-# y = [2.4, 3.5, 4.5, 5.6, 6.7, 7.8]
-# n = 2
 
-# lower_bound = [2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
+# def count_samples_in_interval(data, lower_bound, upper_bound):
 
-# upper_bound = [3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
 
-# chunks = [y[i : i + n] for i in range(0, len(y), n)]
-# print(chunks)
-# bool_list = [
-#     within_interval(y[i], lower_bound[i], upper_bound[i]) for i in range(len(y))
-# ]
-# print(sum(bool_list) / len(bool_list))
+# Generate 1000 random data points from a normal distribution
+median_data = np.random.normal(0, 1, 1000)
+lower_data = np.random.normal(-1, 0.5, 1000)
+upper_data = np.random.normal(1, 0.5, 1000)
+data = np.stack((lower_data, median_data, upper_data), axis=1)
+# Create the histogram with 50 bins
+counts, bin_edges = np.histogram(data[:, 1], bins=10)
+# Extract indices of each sample in each bin
+bin_indices = np.digitize(data[:, 1], bin_edges)
+
+binned_indices = bin_to_indices(bin_indices, bin_edges)
+
+bin_coverages = []
+for bin in binned_indices.values():
+    num_in_bin = len(bin)
+    num_in_bounds = 0
+    for i in bin:
+        if within_interval(data[i][1], data[i][0], data[i][2]):
+            num_in_bounds += 1
+    if num_in_bin == 0:
+        pass
+    else:
+        bin_coverages.append(num_in_bounds / num_in_bin)
+
+print(bin_coverages)
+# Plot the histogram
+plt.hist(data[:, 1], bins=bin_edges, alpha=0.5)
+plt.show()
