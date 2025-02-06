@@ -1,4 +1,3 @@
-import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -15,23 +14,7 @@ def bin_to_indices(bin_indices, bin_edges):
     return binned_samples
 
 
-# def count_samples_in_interval(data, lower_bound, upper_bound):
-
-
-# Generate 1000 random data points from a normal distribution
-median_data = np.random.normal(0, 1, 1000)
-lower_data = np.random.normal(-1, 0.5, 1000)
-upper_data = np.random.normal(1, 0.5, 1000)
-data = np.stack((lower_data, median_data, upper_data), axis=1)
-# Create the histogram with 50 bins
-counts, bin_edges = np.histogram(data[:, 1], bins=10)
-# Extract indices of each sample in each bin
-bin_indices = np.digitize(data[:, 1], bin_edges)
-
-binned_indices = bin_to_indices(bin_indices, bin_edges)
-
-bin_coverages = []
-for bin in binned_indices.values():
+def get_bin_coverage(bin, data):
     num_in_bin = len(bin)
     num_in_bounds = 0
     for i in bin:
@@ -40,9 +23,29 @@ for bin in binned_indices.values():
     if num_in_bin == 0:
         pass
     else:
-        bin_coverages.append(num_in_bounds / num_in_bin)
+        coverage = num_in_bounds / num_in_bin
+        return coverage
 
-print(bin_coverages)
-# Plot the histogram
+
+def fsc_metric(binned_indices, data):
+    """
+    Feature Stratified Coverage Metric
+    """
+    coverages = []
+    for bin in binned_indices.values():
+        coverage = get_bin_coverage(bin, data)
+        coverages.append(coverage)
+    return np.min(coverages)
+
+
+# Generate 1000 random data points from a normal distribution
+median_data = np.random.normal(0, 1, 1000)
+lower_data = np.random.normal(-1, 0.5, 1000)
+upper_data = np.random.normal(1, 0.5, 1000)
+data = np.stack((lower_data, median_data, upper_data), axis=1)
+counts, bin_edges = np.histogram(data[:, 1], bins=10)
+bin_indices = np.digitize(data[:, 1], bin_edges)
+binned_indices = bin_to_indices(bin_indices, bin_edges)
+fsc = fsc_metric(binned_indices, data)
 plt.hist(data[:, 1], bins=bin_edges, alpha=0.5)
 plt.show()
