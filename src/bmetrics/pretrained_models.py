@@ -58,7 +58,7 @@ MODEL_CLASSES = {
     "dimenetpp": (DimeNetPlusPlusWrap, DNPP, "dimenetpp_all.pt"),
     "schnet": (SchNetWrap, SN, "schnet_all_large.pt"),
     "painn": (PaiNN, PN, "painn_all.pt"),
-    "equiformerv2": (EquiformerV2Backbone, EQV2, "eq2_153M_ec4_allmd.pt"),
+    "equiformerv2": (EquiformerV2Backbone, EQV2, "eq2_31M_ec4_allmd.pt"),
 }
 
 
