@@ -14,6 +14,13 @@ def bin_to_indices(bin_indices, bin_edges):
     return binned_samples
 
 
+def get_binned_indices(data, bins):
+    _, bin_edges = np.histogram(data, bins=bins)
+    bin_indices = np.digitize(data, bin_edges)
+    binned_indices = bin_to_indices(bin_indices, bin_edges)
+    return binned_indices
+
+
 def get_bin_coverage(bin, data):
     num_in_bin = len(bin)
     num_in_bounds = 0
@@ -42,10 +49,11 @@ def fsc_metric(binned_indices, data):
 median_data = np.random.normal(0, 1, 1000)
 lower_data = np.random.normal(-1, 0.5, 1000)
 upper_data = np.random.normal(1, 0.5, 1000)
-data = np.stack((lower_data, median_data, upper_data), axis=1)
-counts, bin_edges = np.histogram(data[:, 1], bins=10)
-bin_indices = np.digitize(data[:, 1], bin_edges)
-binned_indices = bin_to_indices(bin_indices, bin_edges)
-fsc = fsc_metric(binned_indices, data)
-plt.hist(data[:, 1], bins=bin_edges, alpha=0.5)
+data_3d = np.stack((lower_data, median_data, upper_data), axis=1)
+data = data_3d[:, 1]
+bins = 10
+binned_indices = get_binned_indices(data, bins=10)
+fsc = fsc_metric(binned_indices, data_3d)
+print(fsc)
+plt.hist(data, bins=bins, alpha=0.5)
 plt.show()
