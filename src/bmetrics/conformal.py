@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def within_interval(y: float, lower_bound: float, upper_bound) -> bool:
-    return lower_bound <= y <= upper_bound
+def within_interval(y: float, lower: float, upper) -> bool:
+    return lower <= y <= upper
 
 
 def bin_to_indices(bin_indices, bin_edges):
@@ -21,11 +21,11 @@ def get_binned_indices(data, bins):
     return binned_indices
 
 
-def get_bin_coverage(bin, data):
+def get_bin_coverage(bin, y, lower, upper):
     num_in_bin = len(bin)
     num_in_bounds = 0
     for i in bin:
-        if within_interval(data[i][1], data[i][0], data[i][2]):
+        if within_interval(y=y[i], lower=lower[i], upper=upper[i]):
             num_in_bounds += 1
     if num_in_bin == 0:
         pass
@@ -34,13 +34,13 @@ def get_bin_coverage(bin, data):
         return coverage
 
 
-def fsc_metric(binned_indices, data):
+def fsc_metric(binned_indices, y, lower, upper):
     """
     Feature Stratified Coverage Metric
     """
     coverages = []
     for bin in binned_indices.values():
-        coverage = get_bin_coverage(bin, data)
+        coverage = get_bin_coverage(bin, y=y, lower=lower, upper=upper)
         coverages.append(coverage)
     return np.min(coverages)
 
@@ -53,7 +53,7 @@ data_3d = np.stack((lower_data, median_data, upper_data), axis=1)
 data = data_3d[:, 1]
 bins = 10
 binned_indices = get_binned_indices(data, bins=10)
-fsc = fsc_metric(binned_indices, data_3d)
+fsc = fsc_metric(binned_indices, y=median_data, lower=lower_data, upper=upper_data)
 print(fsc)
 plt.hist(data, bins=bins, alpha=0.5)
 plt.show()
