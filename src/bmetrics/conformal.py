@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 def within_interval(y: float, lower: float, upper) -> bool:
@@ -43,17 +42,3 @@ def fsc_metric(binned_indices, y, lower, upper):
         coverage = get_bin_coverage(bin, y=y, lower=lower, upper=upper)
         coverages.append(coverage)
     return np.min(coverages)
-
-
-# Generate 1000 random data points from a normal distribution
-median_data = np.random.normal(0, 1, 1000)
-lower_data = np.random.normal(-1, 0.5, 1000)
-upper_data = np.random.normal(1, 0.5, 1000)
-data_3d = np.stack((lower_data, median_data, upper_data), axis=1)
-data = data_3d[:, 1]
-bins = 10
-binned_indices = get_binned_indices(data, bins=10)
-fsc = fsc_metric(binned_indices, y=median_data, lower=lower_data, upper=upper_data)
-print(fsc)
-plt.hist(data, bins=bins, alpha=0.5)
-plt.show()
