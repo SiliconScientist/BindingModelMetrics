@@ -42,20 +42,20 @@ MODEL_CLASSES = {
 }
 
 
-def load_model(name: str, config: Config) -> nn.Module:
-    expert_config = toml.load("pretrained.toml")
+def load_model(name: str, cfg: Config) -> nn.Module:
+    expert_cfg = toml.load("pretrained.toml")
     model_class, wrapper, weights_filename = MODEL_CLASSES[name]
-    weights_path = config.paths.experts / weights_filename
-    model = model_class(**expert_config[name])
+    weights_path = cfg.paths.experts / weights_filename
+    model = model_class(**expert_cfg[name])
     model = wrapper(model)
     weights = torch.load(
-        weights_path, map_location=torch.device(config.device), weights_only=True
+        weights_path, map_location=torch.device(cfg.device), weights_only=True
     )
     model.load_state_dict(weights["state_dict"], strict=False)
-    model.to(config.device)
+    model.to(cfg.device)
     return model
 
 
-def load_experts(names: list, config: Config) -> nn.ModuleList:
-    experts = nn.ModuleList([load_model(name=name, config=config) for name in names])
+def load_experts(expert_names: list[str], cfg: Config) -> nn.ModuleList:
+    experts = nn.ModuleList([load_model(name=name, cfg=cfg) for name in expert_names])
     return experts

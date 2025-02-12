@@ -1,7 +1,8 @@
-import numpy as np
+import json
+
 import optuna
 import polars as pl
-from optuna.pruners import HyperbandPruner
+import torch
 from optuna.samplers import QMCSampler, TPESampler
 
 from bmetrics.config import Config
@@ -9,53 +10,41 @@ from bmetrics.models import make_model
 from bmetrics.train import make_trainer
 
 
-def make_params(trial: optuna.Trial, config: Config):
-    config = config.model_copy(deep=True)
-    hparams = config.hyperparameters
-    config.model.hidden_dim = trial.suggest_int(**hparams.model.hidden_dim)
-    config.model.num_layers = trial.suggest_int(**hparams.model.num_layers)
-    config.model.dropout = trial.suggest_float(**hparams.model.dropout)
-    config.optimizer.lr = trial.suggest_float(**hparams.optimizer.lr)
-    config.optimizer.weight_decay = trial.suggest_float(
-        **hparams.optimizer.weight_decay
-    )
-    return config
+def make_params(trial: optuna.Trial, cfg: Config):
+    cfg = cfg.model_copy(deep=True)
+    hparams = cfg.hyperparameters
+    cfg.model.hidden_dim = trial.suggest_int(**hparams.model.hidden_dim)
+    cfg.model.num_layers = trial.suggest_int(**hparams.model.num_layers)
+    cfg.model.dropout = trial.suggest_float(**hparams.model.dropout)
+    cfg.optimizer.lr = trial.suggest_float(**hparams.optimizer.lr)
+    cfg.optimizer.weight_decay = trial.suggest_float(**hparams.optimizer.weight_decay)
+    cfg.trainer.max_epochs = trial.suggest_int(**hparams.trainer.max_epochs)
+    return cfg
 
 
 class Objective:
-    def __init__(self, config: Config, dataloaders):
-        self.config = config
-        self.dataloaders = dataloaders
+    def __init__(self, cfg: Config, loaders):
+        self.cfg = cfg
+        self.loaders = loaders
         self.best_value = float("inf")
 
     def __call__(self, trial: optuna.Trial):
-        config = make_params(trial, config=self.config)
+        cfg = make_params(trial, cfg=self.cfg)
         params = {
             "experts": ["dimenetpp", "schnet", "painn"],
-            "finetune": True,
             "moe": True,
         }
-        model = make_model(
-            config=config, expert_names=params["experts"], moe=params["moe"]
-        )
-        trainer = make_trainer(config=config, model=model, dataloaders=self.dataloaders)
-        trainer.train()
-        val_loss = trainer.best_val_loss
-        val_loss = float("inf") if np.isnan(val_loss) else val_loss
-        trainer.test()
-        if (val_loss < self.best_value) and (~np.isnan(val_loss)):
-            self.best_value = val_loss
-            path = config.paths.checkpoints / "best.ckpt"
-            trainer.save_checkpoint(path)
-        return val_loss
+        model = make_model(cfg=cfg, expert_names=params["experts"], moe=params["moe"])
+        trainer = make_trainer(cfg=cfg, model=model)
+        trainer.train(self.loaders.train, self.loaders.val)
+        if trainer.best_val_loss < self.best_value:
+            self.best_value = trainer.best_val_loss
+            torch.save(trainer.model.state_dict(), cfg.paths.checkpoint)
+        return trainer.best_val_loss
 
 
-def tune_model(config: Config, data_module):
-    sampler = QMCSampler(seed=config.random_seed)
-    pruner = HyperbandPruner(
-        min_resource=config.tuner.min_resource,
-        max_resource=config.trainer.max_epochs,
-    )
+def tune_model(cfg: Config, loaders):
+    sampler = QMCSampler(seed=cfg.random_seed)
     storage = optuna.storages.RDBStorage(
         url="sqlite:///:memory:",
         engine_kwargs={"pool_size": 10, "connect_args": {"timeout": 10}},
@@ -63,15 +52,16 @@ def tune_model(config: Config, data_module):
     study = optuna.create_study(
         storage=storage,
         sampler=sampler,
-        pruner=pruner,
         direction="minimize",
-        study_name="ABCD",
+        study_name="Mamun",
     )
-    objective = Objective(config=config, data_module=data_module)
-    half_trials = config.tuner.n_trials // 2
+    objective = Objective(cfg=cfg, loaders=loaders)
+    half_trials = cfg.tuner.n_trials // 2
     study.optimize(func=objective, n_trials=half_trials)
-    study.sampler = TPESampler(multivariate=True, seed=config.random_seed)
+    study.sampler = TPESampler(multivariate=True, seed=cfg.random_seed)
     study.optimize(func=objective, n_trials=half_trials)
-    df = pl.DataFrame(study.trials_dataframe())
-    df.write_parquet(config.filepaths.data.results.study)
+    df = pl.DataFrame(study.trials_dataframe()).sort("value", descending=True)
+    df.write_parquet(cfg.paths.study)
+    with open(cfg.paths.hparams, "w") as f:
+        json.dump(study.best_params, f)
     return study

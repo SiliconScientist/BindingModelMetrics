@@ -20,11 +20,11 @@ class Ensemble(nn.Module):
 class GatingGCN(torch.nn.Module):
     def __init__(
         self,
-        input_dim: int,
         experts: nn.ModuleList,
         hidden_dim: int,
         num_layers: int,
         dropout: float,
+        input_dim: int = 4,
     ):
         super().__init__()
         num_experts = len(experts)
@@ -63,23 +63,32 @@ class MixtureOfExperts(nn.Module):
         return prediction
 
 
-def make_moe(config: Config, experts: nn.ModuleList):
-    gating_network = GatingGCN(
-        **config.model.model_dump(exclude={"names"}), experts=experts
-    )
-    gating_network.to(config.device)
+def make_moe(cfg: Config, experts: nn.ModuleList, hparams: dict | None = None):
+    if hparams:
+        gating_network = GatingGCN(**hparams, experts=experts)
+    else:
+        gating_network = GatingGCN(**cfg.model.model_dump(), experts=experts)
+    gating_network.to(cfg.device)
     model = MixtureOfExperts(
         experts=experts,
         gating_network=gating_network,
-        device=config.device,
+        device=cfg.device,
     )
     return model
 
 
-def make_model(config: Config, expert_names: list[str], moe: bool) -> nn.Module:
-    experts = load_experts(names=expert_names, config=config)
+def make_model(
+    cfg: Config,
+    expert_names: list[str],
+    moe: bool,
+    hparams: dict | None = None,
+) -> nn.Module:
+    experts = load_experts(expert_names=expert_names, cfg=cfg)
     if moe:
-        model = make_moe(config, experts)
+        if hparams:
+            model = make_moe(cfg, experts, hparams)
+        else:
+            model = make_moe(cfg, experts)
     else:
         model = Ensemble(experts)
     return model

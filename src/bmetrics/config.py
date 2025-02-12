@@ -9,8 +9,10 @@ class Paths(BaseModel):
     val: Path
     test: Path
     experts: Path
-    checkpoints: Path
+    checkpoint: Path
     results: Path
+    study: Path
+    hparams: Path
 
 
 class DataloaderConfig(BaseModel):
@@ -22,7 +24,6 @@ class DataloaderConfig(BaseModel):
 
 class ModelConfig(BaseModel):
     hidden_dim: int
-    input_dim: int
     num_layers: int
     dropout: float
 
@@ -38,9 +39,14 @@ class OptimizerHParams(BaseModel):
     weight_decay: dict
 
 
+class TrainerHParams(BaseModel):
+    max_epochs: dict
+
+
 class Hyperparameters(BaseModel):
     model: ModelHParams
     optimizer: OptimizerHParams
+    trainer: TrainerHParams
 
 
 class OptimizerConfig(BaseModel):
@@ -59,10 +65,17 @@ class TrainerConfig(BaseModel):
     max_epochs: int
 
 
+class TunerConfig(BaseModel):
+    n_trials: int
+
+
 class Config(BaseModel):
     random_seed: int
     device: str
     fast_dev_run: bool
+    tune: bool
+    train: bool
+    evaluate: bool
     log: bool
     paths: Paths
     dataloader: DataloaderConfig
@@ -71,3 +84,4 @@ class Config(BaseModel):
     optimizer: OptimizerConfig
     scheduler: SchedulerConfig
     trainer: TrainerConfig
+    tuner: TunerConfig
