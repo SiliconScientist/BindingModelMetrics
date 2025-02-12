@@ -1,5 +1,6 @@
 import json
 import polars as pl
+from sympy import false
 import toml
 import torch
 
@@ -7,9 +8,9 @@ import wandb
 from bmetrics.config import Config
 from bmetrics.dataset import get_dataloaders
 from bmetrics.experiment import make_experiment
-from bmetrics.models import make_model
-from bmetrics.train import make_trainer
-from bmetrics.tune import tune_model
+from bmetrics.models import make_model, MixtureOfExperts, set_hyperparameters
+from bmetrics.train import make_trainer, train_model
+from bmetrics.tune import tune_model, load_best_checkpoint
 
 
 def main():
@@ -25,21 +26,17 @@ def main():
         if cfg.tune:
             tune_model(cfg, loaders)
         if cfg.train:
-            try:
-                with cfg.paths.hparams.open("r") as f:
-                    hparams = json.load(f)
-            except FileNotFoundError:
-                hparams = None
-            model = make_model(
-                cfg,
+            train_model(
+                cfg=cfg,
                 expert_names=params["experts"],
                 moe=params["moe"],
-                hparams=hparams,
+                loaders=loaders,
+                use_best=True,
             )
-            trainer = make_trainer(cfg=cfg, model=model)
-            trainer.train(loaders.train_val)
         if cfg.evaluate:
-            model = torch.load(cfg.paths.checkpoint)
+            model = load_best_checkpoint(
+                cfg=cfg, expert_names=params["experts"], moe=params["moe"]
+            )
             trainer = make_trainer(cfg=cfg, model=model)
             test_loss = trainer.evaluate(loaders.test)
             result = params | {

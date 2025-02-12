@@ -1,9 +1,13 @@
+import json
 import torch
+from pathlib import Path
 from torch import nn, optim
 from torch_geometric.loader import DataLoader
 
 import wandb
 from bmetrics.config import Config
+from bmetrics.dataset import DataloaderSplits
+from bmetrics.models import make_model, set_hyperparameters
 
 
 class Trainer:
@@ -68,7 +72,7 @@ class Trainer:
         loss /= len(dataloader)
         return loss
 
-    def save_checkpoint(self, path: str) -> None:
+    def save_checkpoint(self, path: Path) -> None:
         torch.save(
             {
                 "model_state_dict": self.model.state_dict(),
@@ -92,3 +96,24 @@ def make_trainer(cfg: Config, model: nn.Module) -> Trainer:
         cfg=cfg,
     )
     return trainer
+
+
+def train_model(
+    cfg: Config,
+    expert_names: list[str],
+    moe: bool,
+    loaders: DataloaderSplits,
+    use_best: bool = False,
+):
+    if use_best:
+        with open(cfg.paths.hparams, "r") as file:
+            hyperparameters = json.load(file)
+        cfg = set_hyperparameters(cfg=cfg, **hyperparameters)
+        model = make_model(cfg=cfg, expert_names=expert_names, moe=moe)
+        trainer = make_trainer(cfg=cfg, model=model)
+        trainer.train(loaders.train_val)
+    else:
+        model = make_model(cfg=cfg, expert_names=expert_names, moe=moe)
+        trainer = make_trainer(cfg=cfg, model=model)
+        trainer.train(loaders.train_val)
+    torch.save(trainer.model.state_dict(), cfg.paths.checkpoint)

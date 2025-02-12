@@ -3,10 +3,11 @@ import json
 import optuna
 import polars as pl
 import torch
+import torch.nn as nn
 from optuna.samplers import QMCSampler, TPESampler
 
 from bmetrics.config import Config
-from bmetrics.models import make_model
+from bmetrics.models import MixtureOfExperts, make_model, set_hyperparameters
 from bmetrics.train import make_trainer
 
 
@@ -65,3 +66,14 @@ def tune_model(cfg: Config, loaders):
     with open(cfg.paths.hparams, "w") as f:
         json.dump(study.best_params, f)
     return study
+
+
+def load_best_checkpoint(cfg: Config, expert_names: list[str], moe: bool) -> nn.Module:
+    model_weights = torch.load(cfg.paths.checkpoint, weights_only=True)
+    with open(cfg.paths.hparams, "r") as file:
+        hyperparams = json.load(file)
+    cfg = set_hyperparameters(cfg=cfg, **hyperparams)
+    model: nn.Module = make_model(cfg=cfg, expert_names=expert_names, moe=moe)
+    model.load_state_dict(model_weights)
+    model.to(cfg.device)
+    return model

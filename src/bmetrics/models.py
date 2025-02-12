@@ -7,6 +7,24 @@ from bmetrics.config import Config
 from bmetrics.pretrained_models import load_experts
 
 
+def set_hyperparameters(
+    cfg: Config,
+    hidden_dim: int,
+    num_layers: int,
+    dropout: float,
+    lr: float,
+    weight_decay: float,
+    max_epochs: int,
+) -> Config:
+    cfg.model.hidden_dim = hidden_dim
+    cfg.model.num_layers = num_layers
+    cfg.model.dropout = dropout
+    cfg.optimizer.lr = lr
+    cfg.optimizer.weight_decay = weight_decay
+    cfg.trainer.max_epochs = max_epochs
+    return cfg
+
+
 class Ensemble(nn.Module):
     def __init__(self, experts: nn.ModuleList) -> None:
         super().__init__()
@@ -48,10 +66,12 @@ class GatingGCN(torch.nn.Module):
 
 
 class MixtureOfExperts(nn.Module):
-    def __init__(self, experts, gating_network, device):
+    def __init__(self, cfg, experts):
         super(MixtureOfExperts, self).__init__()
         self.experts = nn.ModuleList(experts)
-        self.gating_network = gating_network.to(device)
+        self.gating_network = GatingGCN(**cfg.model.model_dump(), experts=experts).to(
+            cfg.device
+        )
 
     def forward(self, data):
         # Shape: [batch_size, num_experts, output_dim]
@@ -63,32 +83,14 @@ class MixtureOfExperts(nn.Module):
         return prediction
 
 
-def make_moe(cfg: Config, experts: nn.ModuleList, hparams: dict | None = None):
-    if hparams:
-        gating_network = GatingGCN(**hparams, experts=experts)
-    else:
-        gating_network = GatingGCN(**cfg.model.model_dump(), experts=experts)
-    gating_network.to(cfg.device)
-    model = MixtureOfExperts(
-        experts=experts,
-        gating_network=gating_network,
-        device=cfg.device,
-    )
-    return model
-
-
 def make_model(
     cfg: Config,
     expert_names: list[str],
     moe: bool,
-    hparams: dict | None = None,
 ) -> nn.Module:
     experts = load_experts(expert_names=expert_names, cfg=cfg)
     if moe:
-        if hparams:
-            model = make_moe(cfg, experts, hparams)
-        else:
-            model = make_moe(cfg, experts)
+        model = MixtureOfExperts(cfg, experts)
     else:
         model = Ensemble(experts)
     return model
