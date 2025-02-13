@@ -8,7 +8,6 @@ import wandb
 from bmetrics.config import Config
 from bmetrics.dataset import get_dataloaders
 from bmetrics.experiment import make_experiment
-from bmetrics.models import make_model, MixtureOfExperts, set_hyperparameters
 from bmetrics.train import make_trainer, train_model
 from bmetrics.tune import tune_model, load_best_checkpoint
 

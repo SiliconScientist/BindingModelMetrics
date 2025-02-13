@@ -15,12 +15,14 @@ class Trainer:
         self,
         model: torch.nn.Module,
         criterion: nn.MSELoss,
+        scaler: torch.GradScaler,
         optimizer: optim.Optimizer,
         scheduler: optim.lr_scheduler.LRScheduler,
         cfg: Config,
     ):
         self.model = model
         self.criterion = criterion
+        self.scaler = scaler
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.best_train_loss = float("inf")
@@ -28,13 +30,16 @@ class Trainer:
         self.cfg = cfg
 
     def train_step(self, data):
+        self.optimizer.zero_grad(set_to_none=True)
         data = data.to(self.cfg.device)
-        self.optimizer.zero_grad()
-        pred = self.model(data)
-        loss = self.criterion(pred, data.energy)
-        loss.backward()
+        with torch.autocast(device_type=self.cfg.device, dtype=torch.float16):
+            pred = self.model(data)
+            loss = self.criterion(pred, data.energy)
+        self.scaler.scale(loss).backward()
+        self.scaler.unscale_(self.optimizer)
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-        self.optimizer.step()
+        self.scaler.step(self.optimizer)
+        self.scaler.update()
         return loss.item()
 
     def train(self, train_loader, eval_loader: DataLoader | None = None) -> None:
@@ -63,14 +68,14 @@ class Trainer:
     @torch.no_grad()
     def evaluate(self, dataloader):
         self.model.eval()
-        loss = 0.0
+        total_loss = 0.0
         for data in dataloader:
             data = data.to(self.cfg.device)
-            pred = self.model(data)
-            loss = self.criterion(pred, data.energy)
-            loss += loss.item()
-        loss /= len(dataloader)
-        return loss
+            with torch.autocast(device_type=self.cfg.device, dtype=torch.float16):
+                pred = self.model(data)
+                loss = self.criterion(pred, data.energy)
+            total_loss += loss.item()
+        return total_loss / len(dataloader)
 
     def save_checkpoint(self, path: Path) -> None:
         torch.save(
@@ -84,6 +89,7 @@ class Trainer:
 
 def make_trainer(cfg: Config, model: nn.Module) -> Trainer:
     criterion = nn.MSELoss()
+    scaler = torch.GradScaler(cfg.device)
     optimizer = optim.SGD(model.parameters(), **cfg.optimizer.model_dump())
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
         optimizer, **cfg.scheduler.model_dump()
@@ -91,6 +97,7 @@ def make_trainer(cfg: Config, model: nn.Module) -> Trainer:
     trainer = Trainer(
         model=model,
         criterion=criterion,
+        scaler=scaler,
         optimizer=optimizer,
         scheduler=scheduler,
         cfg=cfg,
