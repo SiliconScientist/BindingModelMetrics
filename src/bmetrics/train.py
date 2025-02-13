@@ -1,4 +1,5 @@
 import json
+from typing import Union
 import torch
 import bitsandbytes as bnb
 from pathlib import Path
@@ -43,7 +44,7 @@ class Trainer:
         self.scaler.update()
         return loss.item()
 
-    def train(self, train_loader, eval_loader: DataLoader | None = None) -> None:
+    def train(self, train_loader, eval_loader: Union[DataLoader, None] = None) -> None:
         if self.cfg.fast_dev_run:
             self.cfg.trainer.max_epochs = 1
         for epoch in range(self.cfg.trainer.max_epochs):
