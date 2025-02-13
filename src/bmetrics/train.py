@@ -1,5 +1,6 @@
 import json
 import torch
+import bitsandbytes as bnb
 from pathlib import Path
 from torch import nn, optim
 from torch_geometric.loader import DataLoader
@@ -16,7 +17,7 @@ class Trainer:
         model: torch.nn.Module,
         criterion: nn.MSELoss,
         scaler: torch.GradScaler,
-        optimizer: optim.Optimizer,
+        optimizer: bnb.optim.SGD,
         scheduler: optim.lr_scheduler.LRScheduler,
         cfg: Config,
     ):
@@ -90,7 +91,7 @@ class Trainer:
 def make_trainer(cfg: Config, model: nn.Module) -> Trainer:
     criterion = nn.MSELoss()
     scaler = torch.GradScaler(cfg.device)
-    optimizer = optim.SGD(model.parameters(), **cfg.optimizer.model_dump())
+    optimizer = bnb.optim.SGD(model.parameters(), **cfg.optimizer.model_dump())
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
         optimizer, **cfg.scheduler.model_dump()
     )
