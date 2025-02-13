@@ -3,3 +3,5 @@ toml
 tqdm
 scikit-learn
 polars
+bitsandbytes
+optuna
