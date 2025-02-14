@@ -4,8 +4,11 @@ import torch.nn as nn
 from fairchem.core.models.dimenet_plus_plus import DimeNetPlusPlusWrap
 from fairchem.core.models.painn import PaiNN
 from fairchem.core.models.schnet import SchNetWrap
+import torch._dynamo
 
 from bmetrics.config import Config
+
+torch._dynamo.config.suppress_errors = True
 
 
 class DNPP(nn.Module):
@@ -53,7 +56,8 @@ def load_model(name: str, cfg: Config) -> nn.Module:
     )
     model.load_state_dict(weights["state_dict"], strict=False)
     model.to(cfg.device)
-    return model
+    model = torch.compile(model)
+    return model  # type: ignore
 
 
 def load_experts(expert_names: list[str], cfg: Config) -> nn.ModuleList:

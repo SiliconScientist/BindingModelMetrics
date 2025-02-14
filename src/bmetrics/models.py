@@ -72,6 +72,7 @@ class MixtureOfExperts(nn.Module):
         self.gating_network = GatingGCN(**cfg.model.model_dump(), experts=experts).to(
             cfg.device
         )
+        # self.gating_network = torch.compile(gating_network)
 
     def forward(self, data):
         # Shape: [batch_size, num_experts, output_dim]
