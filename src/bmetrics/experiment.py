@@ -11,9 +11,5 @@ def make_experiment():
         # {"experts": ["dimenetpp", "schnet", "painn"], "finetune": False, "moe": False},
         # {"experts": ["dimenetpp", "schnet", "painn"], "finetune": True, "moe": False},
         # {"experts": ["dimenetpp", "schnet", "painn"], "finetune": False, "moe": True},
-        {
-            "experts": ["dimenetpp", "schnet", "painn", "equiformerv2"],
-            "finetune": True,
-            "moe": True,
-        },
+        {"experts": ["dimenetpp", "schnet", "painn"], "finetune": True, "moe": True},
     ]

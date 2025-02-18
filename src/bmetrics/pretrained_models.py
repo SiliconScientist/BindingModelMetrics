@@ -8,8 +8,11 @@ from fairchem.core.models.equiformer_v2.equiformer_v2 import (
     EquiformerV2Backbone,
     EquiformerV2EnergyHead,
 )
+import torch._dynamo
 
 from bmetrics.config import Config
+
+torch._dynamo.config.suppress_errors = True
 
 
 class DNPP(nn.Module):
@@ -73,7 +76,8 @@ def load_model(name: str, config: Config) -> nn.Module:
     )
     model.load_state_dict(weights["state_dict"], strict=False)
     model.to(config.device)
-    return model
+    model = torch.compile(model)
+    return model  # type: ignore
 
 
 def load_experts(names: list, config: Config) -> nn.ModuleList:
