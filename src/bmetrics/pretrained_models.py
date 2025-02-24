@@ -12,7 +12,7 @@ import torch._dynamo
 
 from bmetrics.config import Config
 
-torch._dynamo.config.suppress_errors = True
+torch._dynamo.config.suppress_errors = True  # type: ignore
 
 
 class DNPP(nn.Module):

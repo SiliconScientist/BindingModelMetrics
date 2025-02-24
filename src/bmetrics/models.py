@@ -51,7 +51,8 @@ class MixtureOfExperts(nn.Module):
     def __init__(self, experts, gating_network, device):
         super(MixtureOfExperts, self).__init__()
         self.experts = nn.ModuleList(experts)
-        self.gating_network = gating_network.to(device)
+        gating_network = gating_network.to(device)
+        self.gating_network = torch.compile(gating_network)
 
     def forward(self, data):
         # Shape: [batch_size, num_experts, output_dim]
