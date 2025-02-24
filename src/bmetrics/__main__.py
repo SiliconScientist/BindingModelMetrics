@@ -25,7 +25,6 @@ def main():
         if params["finetune"]:
             trainer.train()
         test_loss = trainer.test()
-        # prediction_set = trainer.conformalize()
         predictions, y_labels = trainer.predict(trainer.test_loader)
         test_loss = trainer.test()
         result = params | {
