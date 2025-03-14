@@ -1,6 +1,8 @@
 import torch
 from torch import nn, optim
 from torch_geometric.loader import DataLoader
+import bitsandbytes as bnb
+from typing import Union
 
 import wandb
 from bmetrics.config import Config
@@ -12,7 +14,7 @@ class Trainer:
         self,
         model: torch.nn.Module,
         criterion: nn.MSELoss,
-        optimizer: optim.Optimizer,
+        optimizer: Union[optim.SGD, bnb.optim.SGD],
         scheduler: optim.lr_scheduler.LRScheduler,
         train_loader: DataLoader,
         val_loader: DataLoader,
@@ -93,7 +95,8 @@ def make_trainer(
     config: Config, dataloaders: DataloaderSplits, model: nn.Module
 ) -> Trainer:
     criterion = nn.MSELoss()
-    optimizer = optim.SGD(model.parameters(), **config.optimizer.model_dump())
+    optimizer_class = bnb.optim.SGD if config.use_8bit_optimizer else optim.SGD
+    optimizer = optimizer_class(model.parameters(), **config.optimizer.model_dump())
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
         optimizer, **config.scheduler.model_dump()
     )

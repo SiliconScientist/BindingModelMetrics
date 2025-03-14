@@ -47,6 +47,7 @@ class Config(BaseModel):
     random_seed: int
     device: str
     fast_dev_run: bool
+    use_8bit_optimizer: bool
     log: bool
     paths: Paths
     dataloader: DataloaderConfig
