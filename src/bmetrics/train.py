@@ -15,6 +15,7 @@ class Trainer:
         model: torch.nn.Module,
         criterion: nn.MSELoss,
         optimizer: Union[optim.SGD, bnb.optim.SGD],
+        scaler: torch.GradScaler,
         scheduler: optim.lr_scheduler.LRScheduler,
         train_loader: DataLoader,
         val_loader: DataLoader,
@@ -24,6 +25,7 @@ class Trainer:
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
+        self.scaler = scaler
         self.scheduler = scheduler
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -33,13 +35,16 @@ class Trainer:
         self.config = config
 
     def train_step(self, data):
+        self.optimizer.zero_grad(set_to_none=True)
         data = data.to(self.config.device)
-        self.optimizer.zero_grad()
-        pred = self.model(data)
-        loss = self.criterion(pred, data.energy)
-        loss.backward()
+        with torch.autocast(device_type=self.config.device, dtype=torch.float16):
+            pred = self.model(data)
+            loss = self.criterion(pred, data.energy)
+        self.scaler.scale(loss).backward()
+        self.scaler.unscale_(self.optimizer)
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-        self.optimizer.step()
+        self.scaler.step(self.optimizer)
+        self.scaler.update()
         return loss.item()
 
     def train(self) -> None:
@@ -97,6 +102,7 @@ def make_trainer(
     criterion = nn.MSELoss()
     optimizer_class = bnb.optim.SGD if config.use_8bit_optimizer else optim.SGD
     optimizer = optimizer_class(model.parameters(), **config.optimizer.model_dump())
+    scaler = torch.GradScaler(config.device)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
         optimizer, **config.scheduler.model_dump()
     )
@@ -104,6 +110,7 @@ def make_trainer(
         model=model,
         criterion=criterion,
         optimizer=optimizer,
+        scaler=scaler,
         scheduler=scheduler,
         train_loader=dataloaders.train,
         val_loader=dataloaders.val,
