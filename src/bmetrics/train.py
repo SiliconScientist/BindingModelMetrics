@@ -84,8 +84,7 @@ class Trainer:
         for data in dataloader:
             data = data.to(self.config.device)
             pred = self.model(data)
-            loss = self.criterion(pred, data.energy)
-            loss += loss.item()
+            loss += self.criterion(pred, data.energy).item()
         loss /= len(dataloader)
         return loss
 
