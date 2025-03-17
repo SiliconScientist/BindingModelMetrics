@@ -24,11 +24,12 @@ def main():
         trainer = make_trainer(config, dataloaders, model)
         if params["finetune"]:
             trainer.train()
-        test_loss = trainer.test()
+        test_mse, test_mae = trainer.test()
         result = params | {
             "train_mse": trainer.best_train_loss,
             "val_mse": trainer.best_val_loss,
-            "test_mse": test_loss,
+            "test_mse": test_mse,
+            "test_mae": test_mae,
         }
         results.append(result)
         df = pl.DataFrame(results)

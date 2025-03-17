@@ -13,7 +13,8 @@ class Trainer:
     def __init__(
         self,
         model: torch.nn.Module,
-        criterion: nn.MSELoss,
+        mse: nn.MSELoss,
+        mae: nn.L1Loss,
         optimizer: Union[optim.SGD, bnb.optim.SGD],
         scaler: torch.GradScaler,
         scheduler: optim.lr_scheduler.LRScheduler,
@@ -23,7 +24,8 @@ class Trainer:
         config: Config,
     ):
         self.model = model
-        self.criterion = criterion
+        self.mse = mse
+        self.mae = mae
         self.optimizer = optimizer
         self.scaler = scaler
         self.scheduler = scheduler
@@ -39,7 +41,7 @@ class Trainer:
         data = data.to(self.config.device)
         with torch.autocast(device_type=self.config.device, dtype=torch.float16):
             pred = self.model(data)
-            loss = self.criterion(pred, data.energy)
+            loss = self.mse(pred, data.energy)
         self.scaler.scale(loss).backward()
         self.scaler.unscale_(self.optimizer)
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
@@ -57,7 +59,7 @@ class Trainer:
                 train_loss += self.train_step(data)
             self.scheduler.step()
             train_loss /= len(self.train_loader)
-            val_loss = self.validate()
+            val_loss, _ = self.validate()
             if self.config.log:
                 wandb.log(
                     {"epoch": epoch + 1, "train_loss": train_loss, "val_loss": val_loss}
@@ -80,25 +82,29 @@ class Trainer:
     @torch.no_grad()
     def evaluate(self, dataloader):
         self.model.eval()  # Set the model to evaluation mode
-        loss = 0.0
+        mse_loss = 0.0
+        mae_loss = 0.0
         for data in dataloader:
             data = data.to(self.config.device)
             pred = self.model(data)
-            loss += self.criterion(pred, data.energy).item()
-        loss /= len(dataloader)
-        return loss
+            mse_loss += self.mse(pred, data.energy).item()
+            mae_loss += self.mae(pred, data.energy).item()
+        mse_loss = mse_loss / len(dataloader)
+        mae_loss = mae_loss / len(dataloader)
+        return mse_loss, mae_loss
 
-    def validate(self) -> float:
+    def validate(self) -> tuple[float, float]:
         return self.evaluate(self.val_loader)
 
-    def test(self) -> float:
+    def test(self) -> tuple[float, float]:
         return self.evaluate(self.test_loader)
 
 
 def make_trainer(
     config: Config, dataloaders: DataloaderSplits, model: nn.Module
 ) -> Trainer:
-    criterion = nn.MSELoss()
+    mse = nn.MSELoss()
+    mae = nn.L1Loss()
     optimizer_class = bnb.optim.SGD if config.use_8bit_optimizer else optim.SGD
     optimizer = optimizer_class(model.parameters(), **config.optimizer.model_dump())
     scaler = torch.GradScaler(config.device)
@@ -107,7 +113,8 @@ def make_trainer(
     )
     trainer = Trainer(
         model=model,
-        criterion=criterion,
+        mse=mse,
+        mae=mae,
         optimizer=optimizer,
         scaler=scaler,
         scheduler=scheduler,
