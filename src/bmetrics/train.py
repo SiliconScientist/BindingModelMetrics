@@ -15,7 +15,7 @@ class Trainer:
         model: torch.nn.Module,
         mse: nn.MSELoss,
         mae: nn.L1Loss,
-        optimizer: Union[optim.SGD, bnb.optim.SGD],
+        optimizer: Union[optim.Optimizer, bnb.optim.optimizer.Optimizer8bit],
         scaler: torch.GradScaler,
         scheduler: optim.lr_scheduler.LRScheduler,
         train_loader: DataLoader,
@@ -105,7 +105,7 @@ def make_trainer(
 ) -> Trainer:
     mse = nn.MSELoss()
     mae = nn.L1Loss()
-    optimizer_class = bnb.optim.SGD if config.use_8bit_optimizer else optim.SGD
+    optimizer_class = bnb.optim.AdamW8bit if config.use_8bit_optimizer else optim.AdamW
     optimizer = optimizer_class(model.parameters(), **config.optimizer.model_dump())
     scaler = torch.GradScaler(config.device)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
